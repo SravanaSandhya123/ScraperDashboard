@@ -1,0 +1,9 @@
+﻿{
+    "PublicIP":  "13.219.190.100",
+    "Status":  "Deployed",
+    "SecurityGroupId":  null,
+    "InstanceId":  null,
+    "LaunchTime":  "2025-08-10 12:28:23",
+    "InstanceType":  "t3.medium",
+    "KeyName":  "lavangam-key"
+}

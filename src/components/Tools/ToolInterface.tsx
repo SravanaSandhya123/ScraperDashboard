@@ -59,6 +59,21 @@ function getFileNameOnly(file: string) {
   return file.split(/[\\/]/).pop() || file;
 }
 
+interface EProcRun {
+  id: string;
+  sessionId: string;
+  baseUrl: string;
+  tenderType: string;
+  daysInterval: string;
+  startPage: string;
+  captcha: string;
+  status: 'running' | 'completed' | 'stopped' | 'error';
+  startTime: Date;
+  endTime?: Date;
+  outputFiles: string[];
+  isActive: boolean;
+}
+
 export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) => {
   // Use context state for GEM tool, local state for others
   const { state: toolState, setState: setToolState } = useToolState();
@@ -187,7 +202,7 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
     "WEST BENGAL"
   ];
 
-  // E-Procurement specific state (updated)
+  // E-Procurement specific state
   const [eBaseUrl, setEBaseUrl] = useState('');
   const [eTenderType, setETenderType] = useState('');
   const [eDaysInterval, setEDaysInterval] = useState('');
@@ -200,6 +215,10 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
   const [edgeOpened, setEdgeOpened] = useState(false);
   const [eOutputFiles, setEOutputFiles] = useState<string[]>([]);
   const [eCurrentSessionId, setECurrentSessionId] = useState<string | null>(null);
+  
+  // NEW: Multiple runs support
+  const [eProcRuns, setEProcRuns] = useState<EProcRun[]>([]);
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
 
   // WebSocket connection for E-Procurement
   const [eSocket, setESocket] = useState<any>(null);
@@ -1139,11 +1158,27 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
         setESuccess(data.message);
         if (data.session_id) {
           fetchSessionFiles(data.session_id);
+          // Update run status to completed
+          updateRunStatus(data.session_id, 'completed');
+          // Clear active run
+          setActiveRunId(null);
+          setECurrentSessionId(null);
+          // Stop file polling
+          stopFilePolling();
         }
       };
       const handleScrapingError = (data: { error: string }) => {
         setEIsRunning(false);
         setEError(data.error);
+        // Update run status to error if we have an active session
+        if (eCurrentSessionId) {
+          updateRunStatus(eCurrentSessionId, 'error');
+          // Clear active run
+          setActiveRunId(null);
+          setECurrentSessionId(null);
+          // Stop file polling
+          stopFilePolling();
+        }
       };
       const handleStatusUpdate = (data: { active: boolean; session_id: string | null }) => {
         setEIsRunning(data.active);
@@ -1291,6 +1326,14 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
         const fileNames = data.files.map((f: any) => getFileNameOnly(f.name || f));
         console.log('📄 File names:', fileNames);
         setEOutputFiles(fileNames);
+        
+        // Update the run's output files
+        setEProcRuns(prev => prev.map(run => {
+          if (run.sessionId === sessionId) {
+            return { ...run, outputFiles: fileNames };
+          }
+          return run;
+        }));
       } else {
         console.error('❌ Failed to fetch files, status:', response.status);
       }
@@ -1345,12 +1388,43 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
       return;
     }
 
-    // Generate session ID if not exists
+    // Check if Edge is opened and session exists
     if (!eCurrentSessionId) {
-      const newSessionId = `eproc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      setECurrentSessionId(newSessionId);
+      setEError('Session not found. Please open Edge first.');
+      return;
     }
 
+    // If there's an active run, stop it first
+    if (activeRunId && eIsRunning) {
+      try {
+        await handleStopEproc();
+        // Wait a moment for the stop to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        console.error('Failed to stop previous run:', error);
+      }
+    }
+
+    // Create new run entry using the existing session ID
+    const runId = `eproc-run-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const newRun: EProcRun = {
+      id: runId,
+      sessionId: eCurrentSessionId, // Use the existing session ID from Open Edge
+      baseUrl: eBaseUrl,
+      tenderType: eTenderType,
+      daysInterval: eDaysInterval,
+      startPage: eStartPage,
+      captcha: eCaptcha,
+      status: 'running',
+      startTime: new Date(),
+      outputFiles: [],
+      isActive: true
+    };
+
+    // Add new run to the list
+    setEProcRuns(prev => [...prev, newRun]);
+    setActiveRunId(runId);
     setEIsRunning(true);
     setEScrapingStarted(true);
     setEError('');
@@ -1358,19 +1432,19 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
 
     try {
       const res = await fetch(`${BACKEND_URL}/api/start-eproc-scraping`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-          session_id: eCurrentSessionId,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: eCurrentSessionId, // Use the existing session ID
           base_url: eBaseUrl,
-        tender_type: eTenderType,
+          tender_type: eTenderType,
           days_interval: parseInt(eDaysInterval),
           start_page: parseInt(eStartPage),
           captcha: eCaptcha
-      })
-    });
+        })
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
       if (res.ok) {
         setESuccess('Scraping started successfully!');
@@ -1382,28 +1456,66 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
             fetchSessionFiles(eCurrentSessionId);
           }, 1000);
         }
-    } else {
+      } else {
         setEError(data.error || 'Failed to start scraping');
         setEIsRunning(false);
-    }
+        // Update run status to error
+        setEProcRuns(prev => prev.map(run => 
+          run.id === runId ? { ...run, status: 'error', isActive: false } : run
+        ));
+      }
     } catch (error) {
       setEError('Failed to connect to backend server');
-    setEIsRunning(false);
+      setEIsRunning(false);
+      // Update run status to error
+      setEProcRuns(prev => prev.map(run => 
+        run.id === runId ? { ...run, status: 'error', isActive: false } : run
+      ));
     }
   };
 
   const handleStopEproc = async () => {
+    if (!activeRunId || !eCurrentSessionId) {
+      setEError('No active run to stop.');
+      return;
+    }
+
     try {
       const res = await fetch(`${BACKEND_URL}/api/stop-scraping`, {
-      method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: eCurrentSessionId
+        })
       });
 
       if (res.ok) {
         setESuccess('Scraping stopped by user');
+        setEIsRunning(false);
+        setEScrapingStarted(false);
+        setEdgeOpened(false);
+        
+        // Update run status to stopped
+        setEProcRuns(prev => prev.map(run => 
+          run.id === activeRunId ? { 
+            ...run, 
+            status: 'stopped', 
+            isActive: false,
+            endTime: new Date()
+          } : run
+        ));
+        
+        setActiveRunId(null);
+        setECurrentSessionId(null);
+        
+        // Stop file polling
+        stopFilePolling();
+      } else {
+        setEError('Failed to stop scraping');
       }
     } catch (error) {
       console.error('Failed to stop scraping:', error);
+      setEError('Failed to stop scraping');
     }
   };
 
@@ -1420,6 +1532,63 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
     setEdgeOpened(false);
     setEOutputFiles([]);
     setECurrentSessionId(null);
+    setActiveRunId(null);
+    // Stop any file polling
+    stopFilePolling();
+    // Don't clear the runs list - keep history
+  };
+
+  // Function to switch to a different run
+  const switchToRun = (runId: string) => {
+    const run = eProcRuns.find(r => r.id === runId);
+    if (run) {
+      setEBaseUrl(run.baseUrl);
+      setETenderType(run.tenderType);
+      setEDaysInterval(run.daysInterval);
+      setEStartPage(run.startPage);
+      setECaptcha(run.captcha);
+      setECurrentSessionId(run.sessionId);
+      setEOutputFiles(run.outputFiles);
+      setActiveRunId(runId);
+      setEIsRunning(run.isActive);
+      setEScrapingStarted(run.isActive);
+      
+      // Clear any error/success messages when switching runs
+      setEError('');
+      setESuccess('');
+      
+      // If switching to a completed run, fetch its files
+      if (run.status === 'completed' && run.sessionId) {
+        fetchSessionFiles(run.sessionId);
+      }
+    }
+  };
+
+  // Function to clear completed runs
+  const clearCompletedRuns = () => {
+    setEProcRuns(prev => prev.filter(run => run.status === 'running'));
+    // If the active run was cleared, reset the form
+    if (activeRunId && !eProcRuns.find(r => r.id === activeRunId)) {
+      setActiveRunId(null);
+      setECurrentSessionId(null);
+      setEOutputFiles([]);
+    }
+  };
+
+  // Function to update run status when scraping completes
+  const updateRunStatus = (sessionId: string, status: 'completed' | 'stopped' | 'error', outputFiles?: string[]) => {
+    setEProcRuns(prev => prev.map(run => {
+      if (run.sessionId === sessionId) {
+        return {
+          ...run,
+          status,
+          isActive: false,
+          endTime: new Date(),
+          outputFiles: outputFiles || run.outputFiles
+        };
+      }
+      return run;
+    }));
   };
 
   // File management handlers
@@ -1448,11 +1617,41 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
     if (!eCurrentSessionId) return;
 
     try {
-      // Use the new merge-download endpoint that returns CSV
-      window.open(`${BACKEND_URL}/api/merge-download/${eCurrentSessionId}`, '_blank');
-      setESuccess('Files merged and downloaded as CSV successfully!');
-      // Refresh file list
-      fetchSessionFiles(eCurrentSessionId);
+      setESuccess('Processing merge request...');
+      
+      // First, make a request to check the response headers
+      const response = await fetch(`${BACKEND_URL}/api/merge-download/${eCurrentSessionId}`);
+      
+      if (response.ok) {
+        // Get database status from headers
+        const dbStatus = response.headers.get('X-DB-Status');
+        const dbRecords = response.headers.get('X-DB-Records-Inserted');
+        const dbError = response.headers.get('X-DB-Error');
+        
+        // Download the file
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `merged_data_${eCurrentSessionId}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        
+        // Show appropriate success message
+        if (dbStatus === 'success') {
+          setESuccess(`✅ Files merged and downloaded successfully! Database: ${dbRecords} records stored.`);
+        } else {
+          setESuccess(`✅ Files merged and downloaded successfully! ⚠️ Database storage failed: ${dbError || 'Database not accessible'}`);
+        }
+        
+        // Refresh file list
+        fetchSessionFiles(eCurrentSessionId);
+      } else {
+        const errorData = await response.json();
+        setEError(`Failed to merge files: ${errorData.error || 'Unknown error'}`);
+      }
     } catch (error) {
       setEError('Failed to merge and download files');
     }
@@ -1482,11 +1681,20 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
       });
 
       if (response.ok) {
+        const result = await response.json();
+        
         // Download the merged file
         window.open(`${BACKEND_URL}/api/download-global-merge/${globalSessionId}`, '_blank');
-        setESuccess(`Global merge completed - ${eOutputFiles.length} files merged and stored in database!`);
+        
+        // Show appropriate success message based on database status
+        if (result.database_status === 'success') {
+          setESuccess(`✅ Global merge completed! ${result.total_files} files merged, ${result.database_records} records stored in database.`);
+        } else {
+          setESuccess(`✅ Global merge completed! ${result.total_files} files merged. ⚠️ Database storage failed: ${result.database_error || 'Database not accessible'}`);
+        }
       } else {
-        setEError('Failed to merge files globally');
+        const errorData = await response.json();
+        setEError(`Failed to merge files globally: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       setEError('Failed to merge files globally');
@@ -1633,6 +1841,47 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
           Scrapes data from the E-Procurement website and generates Excel files for each page.
         </p>
 
+        {/* Multiple Runs Status Display */}
+        {eProcRuns.length > 0 && (
+          <div className="bg-gray-800/50 border border-gray-600 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-white font-semibold">📊 Run History</h4>
+              <button
+                onClick={clearCompletedRuns}
+                className="text-xs bg-gray-600 hover:bg-gray-700 text-white px-2 py-1 rounded"
+              >
+                Clear Completed
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {eProcRuns.map((run) => (
+                <button
+                  key={run.id}
+                  onClick={() => switchToRun(run.id)}
+                  className={`px-3 py-1 rounded text-white font-semibold cursor-pointer transition-colors ${
+                    run.status === 'running' ? 'bg-blue-500 hover:bg-blue-600' :
+                    run.status === 'completed' ? 'bg-green-500 hover:bg-green-600' :
+                    run.status === 'stopped' ? 'bg-yellow-500 hover:bg-yellow-600' :
+                    'bg-red-500 hover:bg-red-600'
+                  } ${activeRunId === run.id ? 'ring-2 ring-violet-400' : ''}`}
+                  title={`${run.baseUrl} - ${run.tenderType} - ${run.daysInterval} days - Page ${run.startPage}`}
+                >
+                  {run.status === 'running' && '🔄'}
+                  {run.status === 'completed' && '✅'}
+                  {run.status === 'stopped' && '⏹️'}
+                  {run.status === 'error' && '❌'}
+                  {' '}
+                  {run.baseUrl.split('/')[2]?.split('.')[0] || 'Run'} 
+                  ({run.startTime.toLocaleTimeString()})
+                  {run.outputFiles.length > 0 && (
+                    <span className="ml-1 text-xs">📄{run.outputFiles.length}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4">
           {/* URL Input */}
           <div>
@@ -1747,16 +1996,16 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
 
           {/* Action Buttons */}
           <div className="flex gap-4">
-                <button
+            <button
               className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded flex items-center gap-2 disabled:opacity-50"
               onClick={handleStartEproc}
-              disabled={!isAllFieldsFilled}
-                >
+              disabled={!isAllFieldsFilled || !edgeOpened || !eCurrentSessionId}
+            >
               <Play size={16} /> Start Scraping
-                </button>
+            </button>
             
             {eIsRunning && (
-            <button
+              <button
                 className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded flex items-center gap-2"
                 onClick={handleStopEproc}
               >
@@ -1772,6 +2021,20 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
               Reset
             </button>
           </div>
+
+          {/* Help message when Start Scraping is disabled */}
+          {(!isAllFieldsFilled || !edgeOpened || !eCurrentSessionId) && (
+            <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3">
+              <div className="text-yellow-400 text-sm">
+                {!edgeOpened || !eCurrentSessionId 
+                  ? "⚠️ Please click 'Open Edge' first to establish a browser session."
+                  : !isAllFieldsFilled 
+                    ? "⚠️ Please fill in all required fields before starting scraping."
+                    : "⚠️ Please complete all required steps before starting scraping."
+                }
+              </div>
+            </div>
+          )}
 
           {/* Status Messages */}
           {eError && (
@@ -1807,12 +2070,22 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
                     🔄 Live Updates
                   </span>
                 )}
+                {activeRunId && (
+                  <span className="ml-2 text-blue-400 text-sm font-normal">
+                    | Run: {activeRunId.slice(-8)}
+                  </span>
+                )}
               </h4>
               <div className="flex gap-2">
                 <button
                   onClick={() => {
                     if (eCurrentSessionId) {
                       fetchSessionFiles(eCurrentSessionId);
+                    } else if (activeRunId) {
+                      const run = eProcRuns.find(r => r.id === activeRunId);
+                      if (run && run.sessionId) {
+                        fetchSessionFiles(run.sessionId);
+                      }
                     }
                   }}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded flex items-center gap-1 text-sm"
@@ -1824,12 +2097,14 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
                     <button
                       onClick={handleEprocMerge}
                       className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded flex items-center gap-1 text-sm"
+                      disabled={!eCurrentSessionId}
                     >
                       📊 Merge All Files
                     </button>
                     <button
                       onClick={handleEprocGlobalMerge}
                       className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded flex items-center gap-1 text-sm"
+                      disabled={!eCurrentSessionId}
                     >
                       🌐 Global Merge & Store
                     </button>
@@ -1846,7 +2121,14 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
                       <FileText size={16} className="text-blue-400" />
                       <div>
                         <span className="text-white text-sm font-medium">{filename}</span>
-                        <div className="text-gray-400 text-xs">Session: {eCurrentSessionId?.slice(0, 8) || 'Unknown'}</div>
+                        <div className="text-gray-400 text-xs">
+                          Session: {eCurrentSessionId?.slice(0, 8) || 'Unknown'}
+                          {activeRunId && (
+                            <span className="ml-2">
+                              | Run: {activeRunId.slice(-8)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -1859,20 +2141,8 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
                       </button>
                       <button
                         onClick={() => {
-                          // Single file merge functionality
                           if (eCurrentSessionId) {
-                            window.open(`${BACKEND_URL}/api/merge-single/${eCurrentSessionId}/${filename}`, '_blank');
-                          }
-                        }}
-                        className="bg-orange-600 hover:bg-orange-700 text-white p-2 rounded"
-                        title="Merge to CSV"
-                      >
-                        🔗
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Are you sure you want to delete ${filename}?`)) {
-                            handleEprocDeleteFile(filename);
+                            handleEprocDelete(filename);
                           }
                         }}
                         className="bg-red-600 hover:bg-red-700 text-white p-2 rounded"
@@ -1886,50 +2156,16 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
               </div>
             ) : (
               <div className="text-center py-8">
-                <div className="text-gray-400 mb-2">
-                  {eIsRunning ? "🔄 Checking for output files..." : "📄 No output files yet"}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {eIsRunning 
-                    ? "Files will appear here as they are generated during scraping."
-                    : "Output files will appear here after scraping starts."
+                <div className="text-gray-500 mb-2">📄 No output files yet</div>
+                <div className="text-sm text-gray-400">
+                  {activeRunId 
+                    ? 'Output files will appear here after scraping starts for this run.'
+                    : 'Select a run from the history above or start a new scraping job.'
                   }
                 </div>
               </div>
             )}
           </div>
-
-          {/* File Management */}
-          {eOutputFiles.length > 0 && (
-            <div className="bg-gray-800/50 border border-gray-600 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-white font-semibold">Generated Files:</h4>
-                <button
-                  onClick={handleEprocMerge}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded flex items-center gap-1 text-sm"
-                >
-                  <Merge size={14} /> Merge Files
-                </button>
-              </div>
-              
-              <div className="grid gap-2">
-                {eOutputFiles.map((filename, index) => (
-                  <div key={index} className="flex items-center justify-between bg-gray-700/50 rounded p-2">
-                    <div className="flex items-center gap-2">
-                      <FileText size={16} className="text-blue-400" />
-                      <span className="text-white text-sm">{filename}</span>
-                    </div>
-                    <button
-                      onClick={() => handleEprocDownload(filename)}
-                      className="bg-green-600 hover:bg-green-700 text-white p-1 rounded"
-                    >
-                      <Download size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     );

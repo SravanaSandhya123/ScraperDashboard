@@ -1,0 +1,237 @@
+# Service Manager Script - Copy these commands into your EC2 terminal
+
+cd ~/lavangam-backend
+
+# Create a comprehensive service manager
+cat > manage_services.sh << 'MANAGEEOF'
+#!/bin/bash
+
+# LAVANGAM Backend Service Manager
+# This script helps you manage all backend services
+
+SERVICE_NAME="lavangam-backend"
+
+show_status() {
+    echo "=== LAVANGAM Backend Service Status ==="
+    echo ""
+    
+    # Check systemd service
+    echo "Systemd Service:"
+    systemctl is-active $SERVICE_NAME
+    echo ""
+    
+    # Check if port is listening
+    echo "Port Status:"
+    if netstat -tlnp 2>/dev/null | grep :8000 > /dev/null; then
+        echo "✅ Port 8000: LISTENING"
+    else
+        echo "❌ Port 8000: NOT LISTENING"
+    fi
+    
+    # Check process
+    echo ""
+    echo "Process Status:"
+    if pgrep -f "uvicorn.*8000" > /dev/null; then
+        echo "✅ FastAPI process: RUNNING"
+        pgrep -f "uvicorn.*8000" | xargs ps -p
+    else
+        echo "❌ FastAPI process: NOT RUNNING"
+    fi
+    
+    echo ""
+    echo "=== End Status ==="
+}
+
+start_service() {
+    echo "Starting $SERVICE_NAME..."
+    sudo systemctl start $SERVICE_NAME
+    sleep 3
+    show_status
+}
+
+stop_service() {
+    echo "Stopping $SERVICE_NAME..."
+    sudo systemctl stop $SERVICE_NAME
+    sleep 2
+    show_status
+}
+
+restart_service() {
+    echo "Restarting $SERVICE_NAME..."
+    sudo systemctl restart $SERVICE_NAME
+    sleep 3
+    show_status
+}
+
+enable_service() {
+    echo "Enabling $SERVICE_NAME to start on boot..."
+    sudo systemctl enable $SERVICE_NAME
+    echo "Service enabled!"
+}
+
+disable_service() {
+    echo "Disabling $SERVICE_NAME from starting on boot..."
+    sudo systemctl disable $SERVICE_NAME
+    echo "Service disabled!"
+}
+
+view_logs() {
+    echo "Viewing logs for $SERVICE_NAME..."
+    sudo journalctl -u $SERVICE_NAME -f
+}
+
+test_api() {
+    echo "Testing API endpoints..."
+    echo ""
+    
+    # Test health endpoint
+    echo "Testing /health endpoint:"
+    if curl -s http://localhost:8000/health > /dev/null; then
+        echo "✅ /health: RESPONDING"
+        curl -s http://localhost:8000/health | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8000/health
+    else
+        echo "❌ /health: NOT RESPONDING"
+    fi
+    
+    echo ""
+    
+    # Test root endpoint
+    echo "Testing / endpoint:"
+    if curl -s http://localhost:8000/ > /dev/null; then
+        echo "✅ /: RESPONDING"
+        curl -s http://localhost:8000/ | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8000/
+    else
+        echo "❌ /: NOT RESPONDING"
+    fi
+    
+    echo ""
+}
+
+show_help() {
+    echo "LAVANGAM Backend Service Manager"
+    echo "Usage: $0 [command]"
+    echo ""
+    echo "Commands:"
+    echo "  status    - Show service status"
+    echo "  start     - Start the service"
+    echo "  stop      - Stop the service"
+    echo "  restart   - Restart the service"
+    echo "  enable    - Enable service to start on boot"
+    echo "  disable   - Disable service from starting on boot"
+    echo "  logs      - View service logs"
+    echo "  test      - Test API endpoints"
+    echo "  help      - Show this help message"
+    echo ""
+}
+
+# Main script logic
+case "$1" in
+    status)
+        show_status
+        ;;
+    start)
+        start_service
+        ;;
+    stop)
+        stop_service
+        ;;
+    restart)
+        restart_service
+        ;;
+    enable)
+        enable_service
+        ;;
+    disable)
+        disable_service
+        ;;
+    logs)
+        view_logs
+        ;;
+    test)
+        test_api
+        ;;
+    help|--help|-h)
+        show_help
+        ;;
+    *)
+        show_help
+        exit 1
+        ;;
+esac
+MANAGEEOF
+
+# Make it executable
+chmod +x manage_services.sh
+
+# Create a simple startup test
+cat > quick_start.py << 'QUICKEOF'
+#!/usr/bin/env python3
+import subprocess
+import time
+import sys
+
+def start_backend():
+    print("🚀 Quick Starting LAVANGAM Backend...")
+    
+    # Check if already running
+    try:
+        import requests
+        response = requests.get("http://localhost:8000/health", timeout=2)
+        if response.status_code == 200:
+            print("✅ Backend is already running!")
+            return True
+    except:
+        pass
+    
+    # Start the backend
+    try:
+        cmd = ["python3", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+        process = subprocess.Popen(cmd, cwd=".")
+        print(f"✅ Backend started with PID: {process.pid}")
+        
+        # Wait a bit and test
+        time.sleep(3)
+        try:
+            response = requests.get("http://localhost:8000/health", timeout=5)
+            if response.status_code == 200:
+                print("✅ Backend is responding!")
+                return True
+            else:
+                print(f"⚠️ Backend started but health check failed: {response.status_code}")
+                return False
+        except:
+            print("⚠️ Backend started but health check failed")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Failed to start backend: {e}")
+        return False
+
+if __name__ == "__main__":
+    success = start_backend()
+    if success:
+        print("\n🎉 Backend is ready!")
+        print("Access your API at: http://localhost:8000")
+        print("Health check: http://localhost:8000/health")
+    else:
+        print("\n❌ Backend startup failed")
+        sys.exit(1)
+QUICKEOF
+
+# Make it executable
+chmod +x quick_start.py
+
+echo "Service manager created!"
+echo ""
+echo "Available commands:"
+echo "  ./manage_services.sh status    - Check service status"
+echo "  ./manage_services.sh start     - Start the service"
+echo "  ./manage_services.sh restart   - Restart the service"
+echo "  ./manage_services.sh test      - Test API endpoints"
+echo "  ./manage_services.sh logs      - View service logs"
+echo ""
+echo "Quick start:"
+echo "  python3 quick_start.py"
+echo ""
+echo "Manual start:"
+echo "  python3 -m uvicorn main:app --host 0.0.0.0 --port 8000"

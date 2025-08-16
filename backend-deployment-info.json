@@ -1,0 +1,29 @@
+{
+  "DeploymentStatus": "SUCCESS",
+  "InstanceId": "i-0e8f6da5495f3418f",
+  "PublicIP": "34.219.56.219",
+  "Region": "us-west-2",
+  "SecurityGroup": "sg-05abcf58a78ae201e",
+  "KeyPair": "mahi",
+  "DeploymentTime": "2025-08-09T16:34:53.000Z",
+  "AutoStartup": true,
+  "Endpoints": {
+    "HealthCheck": "http://34.219.56.219/health",
+    "MainAPI": "http://34.219.56.219:8000",
+    "ScrapersAPI": "http://34.219.56.219:5022",
+    "SystemAPI": "http://34.219.56.219:5024",
+    "DashboardAPI": "http://34.219.56.219:8004",
+    "AdminMetricsAPI": "http://34.219.56.219:5025"
+  },
+  "SSHAccess": {
+    "Command": "ssh -i mahi.pem ubuntu@34.219.56.219",
+    "StatusCheck": "sudo /opt/lavangam/check-status.sh"
+  },
+  "ServiceDetails": {
+    "AutoStart": true,
+    "RestartPolicy": "always",
+    "ServiceFile": "/etc/systemd/system/lavangam-backend.service",
+    "WorkingDirectory": "/opt/lavangam",
+    "LogLocation": "journalctl -u lavangam-backend.service"
+  }
+}

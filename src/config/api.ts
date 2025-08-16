@@ -3,26 +3,26 @@ export const API_CONFIG = {
   // Main API base URL - Updated to use AWS EC2 instance
   MAIN_API: window.location.hostname === 'localhost' 
     ? 'http://localhost:8000'
-    : 'http://54.149.111.114:8002',
+    : 'http://44.244.61.85:8002',
   
   // System metrics API
   SYSTEM_API: window.location.hostname === 'localhost' 
     ? 'http://localhost:8001'
-    : 'http://54.149.111.114:8002',
+    : 'http://44.244.61.85:8001',
   
   // Dashboard API
   DASHBOARD_API: window.location.hostname === 'localhost' 
     ? 'http://localhost:8004'
-    : 'http://54.149.111.114:8002',
+    : 'http://44.244.61.85:8002',
   
   // WebSocket URLs
   WS_MAIN: window.location.hostname === 'localhost'
     ? 'ws://localhost:8002'
-    : 'ws://54.149.111.114:8002',
+    : 'ws://44.244.61.85:8002',
   
   WS_DASHBOARD: window.location.hostname === 'localhost'
     ? 'ws://localhost:8002'
-    : 'ws://54.149.111.114:8002'
+    : 'ws://44.244.61.85:8002'
 };
 
 // Helper function to get API URL for different services

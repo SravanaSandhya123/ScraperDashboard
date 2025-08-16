@@ -63,7 +63,7 @@ export const AdminPanel: React.FC = () => {
   const [fetchError, setFetchError] = useState('');
   const { enabled: animationsEnabled } = useAnimation();
 
-  // Fetch admin metrics
+  // Fetch admin metrics with improved real-time performance
   const fetchAdminMetrics = async () => {
     try {
       // Add timestamp to prevent caching
@@ -71,8 +71,18 @@ export const AdminPanel: React.FC = () => {
       // Use admin metrics API on port 8001
       const API_BASE_URL = window.location.hostname === 'localhost' 
         ? 'http://localhost:8001'
-        : 'https://lavangam-minimal-backend-env.eba-22qprjmg.us-east-1.elasticbeanstalk.com';
-      const response = await axios.get<AdminMetrics>(`${API_BASE_URL}/admin-metrics?t=${timestamp}`);
+        : 'http://44.244.61.85:8001';
+      
+      // Use timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      const response = await axios.get<AdminMetrics>(`${API_BASE_URL}/admin-metrics?t=${timestamp}`, {
+        signal: controller.signal,
+        timeout: 5000
+      });
+      
+      clearTimeout(timeoutId);
       setAdminMetrics(response.data);
       setMetricsError('');
     } catch (err: any) {
@@ -102,26 +112,29 @@ export const AdminPanel: React.FC = () => {
   useEffect(() => {
     fetchUsers();
     
-    // Initial connection test
+    // Fetch admin metrics immediately without waiting for connection test
+    fetchAdminMetrics();
+    
+    // Initial connection test in background
     const testConnection = async () => {
       try {
         // Use dynamic URL based on environment
         const API_BASE_URL = window.location.hostname === 'localhost' 
           ? 'http://localhost:8001'
-          : 'https://lavangam-minimal-backend-env.eba-22qprjmg.us-east-1.elasticbeanstalk.com';
-        const response = await axios.get(`${API_BASE_URL}/test`);
+          : 'http://44.244.61.85:8001';
+        const response = await axios.get(`${API_BASE_URL}/test`, { timeout: 3000 });
         console.log('✅ API connection test successful:', response.data);
-        fetchAdminMetrics(); // If test passes, fetch metrics
       } catch (err) {
         console.error('❌ API connection test failed:', err);
         setMetricsError('API server not reachable');
       }
     };
     
+    // Run connection test in background
     testConnection();
     
-    // Set up real-time updates every 3 seconds for faster updates
-    const metricsInterval = setInterval(fetchAdminMetrics, 3000);
+    // Set up real-time updates every 1.5 seconds for faster updates
+    const metricsInterval = setInterval(fetchAdminMetrics, 1500);
     
     return () => {
       clearInterval(metricsInterval);

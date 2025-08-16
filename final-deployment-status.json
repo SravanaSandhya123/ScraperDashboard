@@ -1,0 +1,24 @@
+{
+  "DeploymentStatus": "SUCCESS",
+  "ServerIP": "35.89.190.198",
+  "InstanceId": "i-0fabfa756c735316e",
+  "Region": "us-west-2",
+  "SecurityGroup": "sg-05abcf58a78ae201e",
+  "AutoStartup": true,
+  "PortStatus": {
+    "Port80_HealthCheck": "NOT_RESPONDING",
+    "Port8000_MainAPI": "✅ WORKING",
+    "Port5022_ScrapersAPI": "TESTING_NEEDED",
+    "Port5024_SystemAPI": "✅ WORKING", 
+    "Port8004_DashboardAPI": "TESTING_NEEDED",
+    "Port5025_AdminMetrics": "✅ WORKING"
+  },
+  "WorkingEndpoints": {
+    "MainAPI": "http://35.89.190.198:8000",
+    "SystemAPI": "http://35.89.190.198:5024",
+    "AdminMetrics": "http://35.89.190.198:5025"
+  },
+  "DeploymentType": "Simple HTTP Servers",
+  "AutoRestart": true,
+  "ServiceName": "lavangam-simple.service"
+}

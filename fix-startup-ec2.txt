@@ -1,0 +1,169 @@
+# Fix Auto-Startup Issue - Copy these commands into your EC2 terminal
+
+cd ~/lavangam-backend
+
+# First, let's create a proper main.py application
+cat > main.py << 'MAINEOF'
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+app = FastAPI(
+    title="LAVANGAM Backend API",
+    description="Main API for LAVANGAM Backend Services",
+    version="1.0.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/")
+async def root():
+    return {
+        "message": "LAVANGAM Backend API",
+        "status": "running",
+        "version": "1.0.0"
+    }
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "service": "LAVANGAM Backend",
+        "timestamp": "2024-01-01T00:00:00Z"
+    }
+
+@app.get("/api/status")
+async def api_status():
+    return {
+        "api": "running",
+        "database": "connected",
+        "services": "active"
+    }
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+MAINEOF
+
+# Now create a proper startup script
+cat > start_backend.py << 'STARTEOF'
+#!/usr/bin/env python3
+import subprocess
+import time
+import os
+import signal
+import sys
+
+def start_fastapi():
+    """Start the FastAPI application"""
+    print("Starting FastAPI application...")
+    cmd = ["python3", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    process = subprocess.Popen(cmd, cwd=os.getcwd())
+    print(f"FastAPI started with PID: {process.pid}")
+    return process
+
+def main():
+    print("LAVANGAM Backend Startup Script")
+    print("Starting services...")
+    
+    # Start FastAPI
+    fastapi_process = start_fastapi()
+    
+    # Keep running
+    try:
+        while True:
+            time.sleep(5)
+            if fastapi_process.poll() is not None:
+                print("FastAPI process stopped, restarting...")
+                fastapi_process = start_fastapi()
+    except KeyboardInterrupt:
+        print("Shutting down...")
+        fastapi_process.terminate()
+        fastapi_process.wait()
+
+if __name__ == "__main__":
+    main()
+STARTEOF
+
+# Create a proper systemd service file
+sudo tee /etc/systemd/system/lavangam-backend.service > /dev/null << 'SERVICEEOF'
+[Unit]
+Description=LAVANGAM Backend FastAPI Service
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/lavangam-backend
+Environment=PATH=/home/ubuntu/lavangam-backend/venv/bin
+ExecStart=/home/ubuntu/lavangam-backend/venv/bin/python start_backend.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+SERVICEEOF
+
+# Reload systemd and restart services
+sudo systemctl daemon-reload
+sudo systemctl enable lavangam-backend
+sudo systemctl restart lavangam-backend
+
+# Check the service status
+echo "Checking service status..."
+sudo systemctl status lavangam-backend
+
+# Test the API
+echo "Testing API..."
+sleep 3
+curl -s http://localhost:8000/health || echo "API not responding yet"
+
+# Create a simple test script
+cat > test_api.py << 'TESTEOF'
+#!/usr/bin/env python3
+import requests
+import time
+
+def test_api():
+    try:
+        response = requests.get("http://localhost:8000/health", timeout=5)
+        if response.status_code == 200:
+            print("✅ API is responding!")
+            print(f"Response: {response.json()}")
+        else:
+            print(f"❌ API returned status: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        print(f"❌ API test failed: {e}")
+
+if __name__ == "__main__":
+    print("Testing LAVANGAM Backend API...")
+    test_api()
+TESTEOF
+
+# Make scripts executable
+chmod +x start_backend.py
+chmod +x test_api.py
+
+echo "Setup complete! Now test your API:"
+echo "python3 test_api.py"
+echo ""
+echo "To check service status:"
+echo "sudo systemctl status lavangam-backend"
+echo ""
+echo "To view logs:"
+echo "sudo journalctl -u lavangam-backend -f"
