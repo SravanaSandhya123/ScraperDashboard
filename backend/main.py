@@ -402,6 +402,7 @@ async def export_output_files(request: Request):
 if __name__ == "__main__":
     import uvicorn
     print("🚀 Starting Admin Panel Backend Server on port 8000...")
-    print("📡 API will be available at: http://localhost:8000")
-    print("👥 Supabase users endpoint: http://localhost:8000/api/admin/supabase-users")
+    print("📡 API will be available at: http://18.236.173.88:8000")
+    print("🌐 Local access: http://localhost:8000")
+    print("👥 Supabase users endpoint: http://18.236.173.88:8000/api/admin/supabase-users")
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

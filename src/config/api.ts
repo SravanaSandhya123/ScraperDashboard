@@ -1,28 +1,38 @@
 // Centralized API configuration
 export const API_CONFIG = {
-  // Main API base URL - Updated to use AWS EC2 instance
+  // Main API base URL - Updated to use AWS EC2 instance or Render
   MAIN_API: window.location.hostname === 'localhost' 
     ? 'http://localhost:8000'
-    : 'http://44.244.61.85:8002',
+    : window.location.hostname.includes('render.com')
+    ? 'https://your-backend-service.onrender.com'  // Replace with your Render backend URL
+    : 'http://18.236.173.88:8000',
   
   // System metrics API
   SYSTEM_API: window.location.hostname === 'localhost' 
     ? 'http://localhost:8001'
-    : 'http://44.244.61.85:8001',
+    : window.location.hostname.includes('render.com')
+    ? 'https://your-backend-service.onrender.com'  // Replace with your Render backend URL
+    : 'http://18.236.173.88:8001',
   
   // Dashboard API
   DASHBOARD_API: window.location.hostname === 'localhost' 
     ? 'http://localhost:8004'
-    : 'http://44.244.61.85:8002',
+    : window.location.hostname.includes('render.com')
+    ? 'https://your-backend-service.onrender.com'  // Replace with your Render backend URL
+    : 'http://18.236.173.88:8004',
   
   // WebSocket URLs
   WS_MAIN: window.location.hostname === 'localhost'
     ? 'ws://localhost:8002'
-    : 'ws://44.244.61.85:8002',
+    : window.location.hostname.includes('render.com')
+    ? 'wss://your-backend-service.onrender.com'  // Replace with your Render backend URL
+    : 'ws://18.236.173.88:8002',
   
   WS_DASHBOARD: window.location.hostname === 'localhost'
     ? 'ws://localhost:8002'
-    : 'ws://44.244.61.85:8002'
+    : window.location.hostname.includes('render.com')
+    ? 'wss://your-backend-service.onrender.com'  // Replace with your Render backend URL
+    : 'ws://18.236.173.88:8002'
 };
 
 // Helper function to get API URL for different services
