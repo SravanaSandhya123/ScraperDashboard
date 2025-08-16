@@ -10,11 +10,11 @@ import random
 
 # Database configuration for AWS MySQL
 DB_CONFIG = {
-    'host': '54.149.111.114',
+    'host': '44.244.61.85',
     'port': 3306,
     'user': 'root',
     'password': 'thanuja',
-    'database': 'toolinfomation',
+    'database': 'Toolinformation',
     'charset': 'utf8mb4',
     'cursorclass': pymysql.cursors.DictCursor
 }

@@ -89,6 +89,7 @@ def get_logs():
 scraping_processes = {}  # session_id -> process
 scraping_active = False
 current_session_id = None
+stop_flags = {}  # session_id -> stop flag for graceful interruption
 
 # Configuration
 OUTPUT_BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'outputs', 'eproc')
@@ -211,6 +212,8 @@ def open_edge():
         session_id = str(uuid.uuid4())
         pending_eproc_sessions[session_id] = bot
         print(f"[DEBUG] Edge opened, session_id: {session_id}")
+        print(f"[DEBUG] Total sessions after creation: {len(pending_eproc_sessions)}")
+        print(f"[DEBUG] Available sessions: {list(pending_eproc_sessions.keys())}")
         return jsonify({'message': 'Edge opened successfully', 'session_id': session_id, 'url': url}), 200
     except Exception as e:
         print(f"[ERROR] Failed to open Edge: {e}")
@@ -223,6 +226,12 @@ def start_eproc_scraping():
         session_id = data.get('session_id')
         if not session_id:
             return jsonify({'error': 'Session ID is required. Please open Edge first.'}), 400
+        
+        # Debug logging
+        print(f"[DEBUG] Looking for session_id: {session_id}")
+        print(f"[DEBUG] Available sessions: {list(pending_eproc_sessions.keys())}")
+        print(f"[DEBUG] Total sessions: {len(pending_eproc_sessions)}")
+        
         bot = pending_eproc_sessions.get(session_id)
         if not bot:
             return jsonify({'error': 'Session not found. Please open Edge first.'}), 400
@@ -242,6 +251,9 @@ def start_eproc_scraping():
         scraping_active = True
         current_session_id = session_id
         
+        # Set up stop flag for this session
+        stop_flags[session_id] = False
+        
         # Create session directory
         session_dir = os.path.join(OUTPUT_BASE_DIR, session_id)
         if not os.path.exists(session_dir):
@@ -256,13 +268,19 @@ def start_eproc_scraping():
         print(f"[DEBUG] Start page: {data.get('start_page', 1)}")
         print(f"[DEBUG] Captcha: {data.get('captcha', None)}")
         
+        # Create a wrapper log callback that checks for stop flag
+        def log_callback_with_stop_check(msg):
+            if stop_flags.get(session_id, False):
+                raise Exception("Scraping stopped by user")
+            emit_log_to_frontend(msg, session_id)
+        
         run_eproc_scraper_with_bot(
             bot=bot,
             tender_type=data.get('tender_type', ''),
             days_interval=data.get('days_interval', 7),
             start_page=data.get('start_page', 1),
             captcha=data.get('captcha', None),
-            log_callback=emit_log_to_frontend,
+            log_callback=log_callback_with_stop_check,
             session_id=session_id
         )
 
@@ -490,44 +508,79 @@ def move_generated_files(session_id):
 
 @app.route('/api/stop-scraping', methods=['POST'])
 def stop_scraping():
-    """Stop the current scraping process"""
-    global scraping_active
+    """Stop the current scraping process and close Edge browser"""
+    global scraping_active, current_session_id
     try:
         data = request.get_json()
         session_id = data.get('session_id')
-        proc = scraping_processes.get(session_id)
         print(f"[DEBUG] Stop requested for session: {session_id}")
+        
+        # Set stop flag to signal the scraping function to stop gracefully
+        stop_flags[session_id] = True
+        print(f"[DEBUG] Stop flag set for session: {session_id}")
+        
+        # Check if there's an active Edge browser session
+        bot = pending_eproc_sessions.get(session_id)
+        if bot:
+            print(f"[DEBUG] Found Edge browser session: {session_id}, closing browser...")
+            try:
+                # Close the Edge browser
+                bot.quit()
+                print(f"[DEBUG] Edge browser closed for session: {session_id}")
+                
+                # Remove session from pending sessions
+                del pending_eproc_sessions[session_id]
+                print(f"[DEBUG] Session removed from pending_eproc_sessions: {session_id}")
+                
+            except Exception as e:
+                print(f"[ERROR] Failed to close Edge browser for session {session_id}: {e}")
+                # Still remove the session even if browser close fails
+                pending_eproc_sessions.pop(session_id, None)
+        
+        # Also check for any subprocesses
+        proc = scraping_processes.get(session_id)
         if proc:
-            print(f"[DEBUG] Found process for session: {session_id}, terminating...")
+            print(f"[DEBUG] Found subprocess for session: {session_id}, terminating...")
             try:
                 proc.terminate()
                 try:
                     proc.wait(timeout=5)
-                    print(f"[DEBUG] Process terminated with .terminate() for session: {session_id}")
+                    print(f"[DEBUG] Subprocess terminated with .terminate() for session: {session_id}")
                 except Exception as e:
-                    print(f"[DEBUG] .terminate() did not stop process, using .kill() for session: {session_id}")
+                    print(f"[DEBUG] .terminate() did not stop subprocess, using .kill() for session: {session_id}")
                     proc.kill()
                     proc.wait(timeout=5)
             except Exception as e:
-                print(f"[ERROR] Failed to terminate/kill process for session {session_id}: {e}")
-            
-            # Move any generated files before stopping
-            socketio.emit('scraping_log', {'message': '📁 Moving any generated files...', 'session_id': session_id})
-            move_generated_files(session_id)
-            
-            scraping_active = False
-            socketio.emit('scraping_log', {'message': '🛑 Scraping stopped by user', 'session_id': session_id})
-            socketio.emit('scraping_complete', {
-                'success': True,
-                'message': '🛑 Scraping stopped by user',
-                'session_id': session_id,
-                'timestamp': datetime.now().isoformat()
-            })
-            del scraping_processes[session_id]
-            return jsonify({'message': 'Scraping stopped successfully'}), 200
-        else:
-            print(f"[DEBUG] No active process found for session: {session_id}")
-            return jsonify({'message': 'No active scraping process for this session'}), 200
+                print(f"[ERROR] Failed to terminate/kill subprocess for session {session_id}: {e}")
+            finally:
+                del scraping_processes[session_id]
+        
+        # Move any generated files before stopping
+        socketio.emit('scraping_log', {'message': '📁 Moving any generated files...', 'session_id': session_id})
+        move_generated_files(session_id)
+        
+        # Update global state
+        scraping_active = False
+        if current_session_id == session_id:
+            current_session_id = None
+        
+        # Emit status updates
+        socketio.emit('scraping_log', {'message': '🛑 Scraping stopped by user', 'session_id': session_id})
+        socketio.emit('scraping_complete', {
+            'success': True,
+            'message': '🛑 Scraping stopped by user',
+            'session_id': session_id,
+            'timestamp': datetime.now().isoformat()
+        })
+        socketio.emit('status_update', {
+            'active': False,
+            'session_id': session_id,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+        print(f"[DEBUG] Stop completed for session: {session_id}")
+        return jsonify({'message': 'Scraping stopped successfully'}), 200
+        
     except Exception as e:
         print(f"[ERROR] Exception in stop_scraping: {e}")
         return jsonify({'error': f'Failed to stop scraping: {str(e)}'}), 500

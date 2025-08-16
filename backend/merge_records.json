@@ -192,5 +192,39 @@
       "open-tenders_output_page-1_tender-3.xlsx"
     ],
     "db_records_inserted": 0
+  },
+  {
+    "session_id": "global-merge-1755271862609",
+    "files_processed": 1,
+    "total_records": 1,
+    "merged_file": "C:\\lavangam\\lavangam\\backend\\outputs\\eproc\\global-merge-1755271862609\\global_merged_20250815_210108.csv",
+    "timestamp": "2025-08-15T21:01:29.448825",
+    "source_files": [
+      "open-tenders_output_page-1_tender-1.xlsx"
+    ],
+    "db_records_inserted": 0
+  },
+  {
+    "session_id": "global-merge-1755271870698",
+    "files_processed": 1,
+    "total_records": 1,
+    "merged_file": "C:\\lavangam\\lavangam\\backend\\outputs\\eproc\\global-merge-1755271870698\\global_merged_20250815_210129.csv",
+    "timestamp": "2025-08-15T21:01:50.986375",
+    "source_files": [
+      "open-tenders_output_page-1_tender-1.xlsx"
+    ],
+    "db_records_inserted": 0
+  },
+  {
+    "session_id": "global-merge-1755320840267",
+    "files_processed": 2,
+    "total_records": 2,
+    "merged_file": "C:\\lavangam\\lavangam\\backend\\outputs\\eproc\\global-merge-1755320840267\\global_merged_20250816_103738.csv",
+    "timestamp": "2025-08-16T10:38:00.045075",
+    "source_files": [
+      "open-tenders_output_page-1_tender-1.xlsx",
+      "open-tenders_output_page-1_tender-2.xlsx"
+    ],
+    "db_records_inserted": 0
   }
 ]

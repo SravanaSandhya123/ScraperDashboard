@@ -19,11 +19,11 @@ from scrapers.search import run_eproc_scraper_with_bot
 from database_operations_mysql import EProcurementDBMySQL
 # Set environment variables directly for MySQL connection
 import os
-os.environ['DB_HOST'] = '54.149.111.114'
+os.environ['DB_HOST'] = '44.244.61.85'
 os.environ['DB_PORT'] = '3306'
 os.environ['DB_USER'] = 'root'
 os.environ['DB_PASSWORD'] = 'thanuja'
-os.environ['DB_NAME'] = 'toolinfomation'
+os.environ['DB_NAME'] = 'Toolinformation'
 
 app = Flask(__name__)
 CORS(app)
@@ -574,9 +574,10 @@ def merge_session_files(session_id):
 
 @app.route('/api/merge-download/<session_id>', methods=['GET'])
 def merge_download_session(session_id):
-    """Merge all files in a session and download as CSV"""
+    """Merge all files in a session, download as CSV, and store in database"""
     try:
         import pandas as pd
+        from datetime import datetime
         
         session_dir = os.path.join(OUTPUT_BASE_DIR, session_id)
         if not os.path.exists(session_dir):
@@ -588,12 +589,19 @@ def merge_download_session(session_id):
         
         # Read and merge all Excel files
         all_data = []
+        processed_files = []
         for file_path in excel_files:
             try:
                 df = pd.read_excel(file_path)
+                # Add source file information
+                df['source_file'] = os.path.basename(file_path)
+                df['source_session'] = session_id
+                df['processed_date'] = datetime.now().isoformat()
                 all_data.append(df)
+                processed_files.append(os.path.basename(file_path))
             except Exception as e:
                 print(f"Warning: Could not read {file_path}: {e}")
+                continue
         
         if not all_data:
             return jsonify({'error': 'No valid Excel files found'}), 404
@@ -601,10 +609,45 @@ def merge_download_session(session_id):
         # Merge all dataframes
         merged_df = pd.concat(all_data, ignore_index=True)
         
+        # Store in MySQL database
+        db_result = None
+        try:
+            from database_operations_mysql import EProcurementDBMySQL
+            db = EProcurementDBMySQL()
+            db_result = db.store_merged_data(
+                df=merged_df,
+                merge_session_id=f"merge_{session_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                source_session_id=session_id,
+                source_file=','.join(processed_files)
+            )
+            
+            if db_result['success']:
+                print(f"✅ MySQL Database storage successful: {db_result['records_inserted']} records inserted")
+                socketio.emit('scraping_log', {
+                    'message': f'📊 MySQL Database: {db_result["records_inserted"]} records stored successfully'
+                })
+            else:
+                print(f"❌ MySQL Database storage failed: {db_result['error']}")
+                socketio.emit('scraping_log', {
+                    'message': f'⚠️ MySQL Database storage failed: {db_result["error"]}'
+                })
+        except Exception as db_error:
+            print(f"❌ MySQL Database operation error: {db_error}")
+            socketio.emit('scraping_log', {
+                'message': f'⚠️ MySQL Database operation error: {str(db_error)}'
+            })
+        
         # Create response with CSV data
         csv_data = merged_df.to_csv(index=False)
         response = Response(csv_data, mimetype='text/csv')
         response.headers['Content-Disposition'] = f'attachment; filename=merged_data_{session_id}.csv'
+        
+        # Add database storage info to response headers
+        if db_result and db_result.get('success'):
+            response.headers['X-DB-Records-Inserted'] = str(db_result.get('records_inserted', 0))
+            response.headers['X-DB-Status'] = 'success'
+        else:
+            response.headers['X-DB-Status'] = 'failed'
         
         return response
         

@@ -1,8 +1,13 @@
-const { Pool } = require('pg');
+const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://username:password@localhost:5432/scraper_db',
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || '44.244.61.85',
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || 'thanuja',
+  database: process.env.DB_NAME || 'Toolinformation',
+  charset: 'utf8mb4'
 });
 
 async function setupDatabase() {
@@ -12,57 +17,60 @@ async function setupDatabase() {
     // Create users table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
         email VARCHAR(255) UNIQUE NOT NULL,
         username VARCHAR(100) NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         role VARCHAR(20) DEFAULT 'user',
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW(),
-        last_login TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        last_login TIMESTAMP NULL,
         is_active BOOLEAN DEFAULT true
-      );
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
     // Create tools table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS tools (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
         name VARCHAR(255) NOT NULL,
         category VARCHAR(50) NOT NULL,
         description TEXT,
-        states JSONB,
+        states JSON,
         icon VARCHAR(50),
         is_active BOOLEAN DEFAULT true,
-        created_by UUID REFERENCES users(id),
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      );
+        created_by VARCHAR(36),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
     // Create tools_1 table (for job tracking)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS tools_1 (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID REFERENCES users(id),
-        tool_id UUID REFERENCES tools(id),
+        id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+        user_id VARCHAR(36),
+        tool_id VARCHAR(36),
         state VARCHAR(100),
         username VARCHAR(255),
         starting_name VARCHAR(255),
         status VARCHAR(20) DEFAULT 'pending',
         progress INTEGER DEFAULT 0,
-        start_time TIMESTAMP,
-        end_time TIMESTAMP,
-        output_files JSONB,
-        logs JSONB,
-        created_at TIMESTAMP DEFAULT NOW()
-      );
+        start_time TIMESTAMP NULL,
+        end_time TIMESTAMP NULL,
+        output_files JSON,
+        logs JSON,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (tool_id) REFERENCES tools(id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
     // Create eprocurement_tenders table (for storing merged e-procurement data)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS eprocurement_tenders (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
         bid_user VARCHAR(100),
         tender_id VARCHAR(100),
         name_of_work TEXT,
@@ -83,20 +91,20 @@ async function setupDatabase() {
         source_session_id VARCHAR(100),
         source_file VARCHAR(255),
         merge_session_id VARCHAR(100),
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      );
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
     // Create index on tender_id for faster lookups
     await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_eprocurement_tenders_tender_id 
+      CREATE INDEX idx_eprocurement_tenders_tender_id 
       ON eprocurement_tenders(tender_id);
     `);
 
     // Create index on merge_session_id for filtering by merge session
     await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_eprocurement_tenders_merge_session 
+      CREATE INDEX idx_eprocurement_tenders_merge_session 
       ON eprocurement_tenders(merge_session_id);
     `);
 
@@ -106,16 +114,16 @@ async function setupDatabase() {
     
     await pool.query(`
       INSERT INTO users (email, username, password_hash, role) 
-      VALUES ($1, $2, $3, $4) 
-      ON CONFLICT (email) DO NOTHING
+      VALUES (?, ?, ?, ?) 
+      ON DUPLICATE KEY UPDATE email = email
     `, ['super@scraper.com', 'Super Admin', hashedPassword, 'super_admin']);
 
     // Insert default admin user
     const adminPassword = await bcrypt.hash('admin123', 10);
     await pool.query(`
       INSERT INTO users (email, username, password_hash, role) 
-      VALUES ($1, $2, $3, $4) 
-      ON CONFLICT (email) DO NOTHING
+      VALUES (?, ?, ?, ?) 
+      ON DUPLICATE KEY UPDATE email = email
     `, ['admin@scraper.com', 'Admin', adminPassword, 'admin']);
 
     // Insert default tools
@@ -146,8 +154,8 @@ async function setupDatabase() {
     for (const tool of tools) {
       await pool.query(`
         INSERT INTO tools (name, category, description, states, icon) 
-        VALUES ($1, $2, $3, $4, $5) 
-        ON CONFLICT DO NOTHING
+        VALUES (?, ?, ?, ?, ?) 
+        ON DUPLICATE KEY UPDATE name = name
       `, [tool.name, tool.category, tool.description, JSON.stringify(tool.states), tool.icon]);
     }
 

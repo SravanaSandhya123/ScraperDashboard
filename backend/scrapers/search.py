@@ -876,15 +876,25 @@ def run_eproc_scraper_with_bot(
             # Continue without maximizing
         
         for idx in range(start_page, total_pages + 1):
-            log(f"[INFO] SCRAPING PAGE [{idx}/{total_pages}]")
+            # Check for stop flag before processing each page
+            if log_callback:
+                log_callback(f"[INFO] SCRAPING PAGE [{idx}/{total_pages}]")
+            else:
+                log(f"[INFO] SCRAPING PAGE [{idx}/{total_pages}]")
+            
             list_table = bot.find_element(By.ID, "table")
             a_tags = list_table.find_elements(By.TAG_NAME, "a")
             tender_links = [a.get_attribute("href") for a in a_tags if "DirectLink" in a.get_attribute("href")]
             
             # Process each tender individually - files will be saved automatically in get_all_detail
             all_detail = get_all_detail(bot, tender_links, base_url, log, session_id, idx, file_name)
-            log(f"[INFO] COMPLETED PAGE [{idx}/{total_pages}] - {len(all_detail)} TENDERS PROCESSED")
-            log("-" * 60)
+            
+            if log_callback:
+                log_callback(f"[INFO] COMPLETED PAGE [{idx}/{total_pages}] - {len(all_detail)} TENDERS PROCESSED")
+                log_callback("-" * 60)
+            else:
+                log(f"[INFO] COMPLETED PAGE [{idx}/{total_pages}] - {len(all_detail)} TENDERS PROCESSED")
+                log("-" * 60)
             
             if idx < total_pages:
                 next_page_url = f"{base_url}?component=%24TablePages.linkPage&page=FrontEndAdvancedSearchResult&service=direct&session=T&sp=AFrontEndAdvancedSearchResult%2Ctable&sp={idx+1}"

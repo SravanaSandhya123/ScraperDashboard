@@ -1,7 +1,7 @@
 -- Create eprocurement_tenders table for storing merged e-procurement data
--- Run this script in your MySQL database (toolinformation)
+-- Run this script in your MySQL database (Toolinformation)
 
-USE toolinformation;
+USE Toolinformation;
 
 CREATE TABLE IF NOT EXISTS eprocurement_tenders (
     id VARCHAR(36) PRIMARY KEY,

@@ -20,7 +20,7 @@ from functools import lru_cache
 import logging
 import asyncio
 
-# Cache user data for 30 seconds to reduce Supabase API calls
+# Cache user data for 5 seconds to reduce Supabase API calls and improve real-time updates
 @lru_cache(maxsize=1)
 async def get_cached_user_data():
     try:
@@ -186,11 +186,11 @@ async def get_supabase_users(credentials: HTTPAuthorizationCredentials = Depends
 
 # Database configuration - Updated to use AWS MySQL
 DB_CONFIG = {
-    'host': '54.149.111.114',
+    'host': '44.244.61.85',
     'port': 3306,
     'user': 'root',
     'password': 'thanuja',
-    'database': 'toolinfomation'
+    'database': 'Toolinformation'
 }
 
 # File to store previous database size for growth calculation
@@ -366,10 +366,10 @@ def get_jobs_info() -> Dict[str, Any]:
 
 @app.get("/system-load")
 async def get_system_load():
-    """Get real-time system load metrics"""
+    """Get real-time system load metrics with improved performance"""
     try:
-        # CPU usage
-        cpu_percent = psutil.cpu_percent(interval=1)
+        # CPU usage with shorter interval for faster response
+        cpu_percent = psutil.cpu_percent(interval=0.1)
         
         # Memory usage
         memory = psutil.virtual_memory()
@@ -383,6 +383,9 @@ async def get_system_load():
         boot_time = datetime.fromtimestamp(psutil.boot_time())
         uptime = datetime.now() - boot_time
         
+        # Get network I/O for additional metrics
+        network_io = psutil.net_io_counters()
+        
         return {
             "cpu_percent": round(cpu_percent, 2),
             "memory_percent": round(memory_percent, 2),
@@ -391,6 +394,8 @@ async def get_system_load():
             "memory_total": format_bytes(memory.total),
             "disk_used": format_bytes(disk.used),
             "disk_total": format_bytes(disk.total),
+            "network_bytes_sent": format_bytes(network_io.bytes_sent),
+            "network_bytes_recv": format_bytes(network_io.bytes_recv),
             "uptime_seconds": int(uptime.total_seconds()),
             "uptime_formatted": str(uptime).split('.')[0],  # Remove microseconds
             "timestamp": datetime.now().isoformat()
@@ -398,6 +403,35 @@ async def get_system_load():
     except Exception as e:
         logger.error(f"Error getting system load: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get system load: {str(e)}")
+
+@app.get("/system-resources-realtime")
+async def get_system_resources_realtime():
+    """Get real-time system resources for immediate display"""
+    try:
+        # Quick CPU check without interval for immediate response
+        cpu_percent = psutil.cpu_percent()
+        
+        # Memory usage
+        memory = psutil.virtual_memory()
+        
+        # Disk usage
+        disk = psutil.disk_usage('/')
+        
+        return {
+            "cpu_percent": round(cpu_percent, 1),
+            "memory_percent": round(memory.percent, 1),
+            "disk_percent": round((disk.used / disk.total) * 100, 1),
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting real-time system resources: {e}")
+        return {
+            "cpu_percent": 0,
+            "memory_percent": 0,
+            "disk_percent": 0,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 @app.get("/database-size")
 async def get_database_size_endpoint():
@@ -477,24 +511,31 @@ async def get_supabase_users(credentials: HTTPAuthorizationCredentials = Depends
 
 @app.get("/admin-metrics")
 async def get_all_metrics():
-    """Get all admin metrics in one call with enhanced user tracking"""
+    """Get all admin metrics in one call with enhanced user tracking and real-time performance"""
     try:
         logger.info("Admin metrics request received")
-        system_load = await get_system_load()
+        
+        # Use real-time system resources for faster response
+        system_resources = await get_system_resources_realtime()
         database_size = get_database_size()
         jobs_info = get_jobs_info()
         user_data = await get_active_users()
         
         result = {
-            "system_load": system_load,
+            "system_load": {
+                "cpu_percent": system_resources["cpu_percent"],
+                "memory_percent": system_resources["memory_percent"],
+                "disk_percent": system_resources["disk_percent"],
+                "timestamp": system_resources["timestamp"]
+            },
             "database_size": database_size,
             "jobs_info": jobs_info,
             "active_users": {
                 "count": user_data["count"],
                 "total_users": user_data["total_users"],
                 "users": user_data["users"],
-                "error": user_data["error"],
-                "cache_status": user_data["cache_status"],
+                "error": user_data.get("error"),
+                "cache_status": user_data.get("cache_status"),
                 "last_updated": datetime.now().isoformat()
             },
             "timestamp": datetime.now().isoformat()

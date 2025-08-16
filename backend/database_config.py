@@ -9,9 +9,9 @@ load_dotenv()
 
 # Database configuration for AWS MySQL
 DATABASE_CONFIG = {
-    'host': os.getenv('DB_HOST', '54.149.111.114'),
+    'host': os.getenv('DB_HOST', '44.244.61.85'),
     'port': int(os.getenv('DB_PORT', 3306)),
-    'database': os.getenv('DB_NAME', 'toolinfomation'),
+    'database': os.getenv('DB_NAME', 'Toolinformation'),
     'user': os.getenv('DB_USER', 'root'),
     'password': os.getenv('DB_PASSWORD', 'thanuja'),
     'charset': 'utf8mb4'

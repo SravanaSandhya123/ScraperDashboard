@@ -611,11 +611,11 @@ def ireps_merge_download(session_id: str):
         if not merged_df.empty:
             try:
                 connection = pymysql.connect(
-                    host='54.149.111.114',
+                    host='44.244.61.85',
                     port=3306,
                     user='root',
                     password='thanuja',
-                    db='toolinfomation',
+                    db='Toolinformation',
                     charset='utf8mb4',
                     cursorclass=pymysql.cursors.DictCursor
                 )

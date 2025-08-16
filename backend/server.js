@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { Pool } = require('pg');
+const mysql = require('mysql2/promise');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -16,8 +16,13 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 // Database connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://username:password@localhost:5432/scraper_db',
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || '44.244.61.85',
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || 'thanuja',
+  database: process.env.DB_NAME || 'Toolinformation',
+  charset: 'utf8mb4'
 });
 
 // Middleware

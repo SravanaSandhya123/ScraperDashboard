@@ -137,16 +137,41 @@ def merge_download(run_id):
     if not merged_df.empty:
         try:
             connection = pymysql.connect(
-                host='54.149.111.114',
+                host='44.244.61.85',
                 port=3306,
                 user='root',
                 password='thanuja',
-                db='toolinfomation',
+                db='Toolinformation',
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor
             )
             with connection:
                 with connection.cursor() as cursor:
+                    # Create gem_data table if it doesn't exist
+                    cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS gem_data (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            user_name VARCHAR(255),
+                            bid_no VARCHAR(255),
+                            name_of_work TEXT,
+                            category VARCHAR(255),
+                            ministry_and_department VARCHAR(255),
+                            quantity VARCHAR(255),
+                            emd VARCHAR(255),
+                            exemption VARCHAR(255),
+                            estimation_value VARCHAR(255),
+                            state VARCHAR(255),
+                            location VARCHAR(255),
+                            apply_mode VARCHAR(255),
+                            website_link TEXT,
+                            document_link TEXT,
+                            attachment_link TEXT,
+                            end_date VARCHAR(255),
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """)
+                    
+                    # Insert data
                     cols = ','.join(f'`{col}`' for col in merged_df.columns)
                     placeholders = ','.join(['%s'] * len(merged_df.columns))
                     sql = f'INSERT INTO gem_data ({cols}) VALUES ({placeholders})'
@@ -312,22 +337,37 @@ def ireps_merge_download(run_id):
     if not merged_df.empty:
         try:
             connection = pymysql.connect(
-                host='54.149.111.114',
+                host='44.244.61.85',
                 port=3306,
                 user='root',
                 password='thanuja',
-                db='toolinfomation',
+                db='Toolinformation',
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor
             )
             with connection:
                 with connection.cursor() as cursor:
+                    # Create tender table if it doesn't exist
+                    cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS tender (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            dept_unit VARCHAR(255),
+                            tender_no VARCHAR(255),
+                            tender_title TEXT,
+                            status VARCHAR(255),
+                            work_area VARCHAR(255),
+                            due_datetime VARCHAR(255),
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """)
+                    
                     cols = ','.join(f'`{col}`' for col in merged_df.columns)
                     placeholders = ','.join(['%s'] * len(merged_df.columns))
                     sql = f'INSERT INTO tender ({cols}) VALUES ({placeholders})'
                     for row in merged_df.itertuples(index=False, name=None):
                         cursor.execute(sql, row)
                 connection.commit()
+                print(f"[SUCCESS] Inserted {len(merged_df)} rows into tender table (AWS)")
         except Exception as e:
             print(f"[ERROR] Failed to insert merged data into tender (AWS): {e}")
 

@@ -29,11 +29,11 @@ app.add_middleware(
 
 # Database configuration - using the same config as admin_metrics_api
 DB_CONFIG = {
-    'host': '54.149.111.114',
+    'host': '44.244.61.85',
     'port': 3306,
     'user': 'root',
     'password': 'thanuja',
-    'db': 'toolinfomation',
+    'db': 'Toolinformation',
     'charset': 'utf8mb4',
     'cursorclass': pymysql.cursors.DictCursor
 }

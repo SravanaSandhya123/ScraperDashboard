@@ -1,5 +1,5 @@
 import os
-import psycopg2
+import pymysql
 import pandas as pd
 from datetime import datetime
 from typing import List, Dict, Any
@@ -11,14 +11,27 @@ logger = logging.getLogger(__name__)
 
 class EProcurementDB:
     def __init__(self):
-        self.connection_string = os.getenv('DATABASE_URL', 'postgresql://username:password@localhost:5432/scraper_db')
+        # Use MySQL configuration
+        self.host = os.getenv('DB_HOST', '44.244.61.85')
+        self.port = int(os.getenv('DB_PORT', 3306))
+        self.user = os.getenv('DB_USER', 'root')
+        self.password = os.getenv('DB_PASSWORD', 'thanuja')
+        self.database = os.getenv('DB_NAME', 'Toolinformation')
     
     def get_connection(self):
-        """Get database connection"""
+        """Get MySQL database connection"""
         try:
-            return psycopg2.connect(self.connection_string)
+            return pymysql.connect(
+                host=self.host,
+                port=self.port,
+                user=self.user,
+                password=self.password,
+                database=self.database,
+                charset='utf8mb4',
+                cursorclass=pymysql.cursors.DictCursor
+            )
         except Exception as e:
-            logger.error(f"Database connection error: {e}")
+            logger.error(f"MySQL connection error: {e}")
             raise
     
     def store_merged_data(self, df: pd.DataFrame, merge_session_id: str, source_session_id: str = None, source_file: str = None) -> Dict[str, Any]:
