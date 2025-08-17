@@ -1,80 +1,44 @@
 services:
-  # 🚀 FORCE REDEPLOY: Consolidated Backend - All services on single port
-  # 📅 Timestamp: 2025-08-17 13:35:00 - Force rebuild with consolidated backend
   - type: web
     name: lavangam-backend
     env: python
     plan: free
     buildCommand: |
-      echo "🚀 Starting Lavangam Backend build..."
-      cd backend
+      echo "🚀 Building Lavangam Backend with ALL required packages..."
       echo "📁 Current directory: $(pwd)"
-      echo "📁 Contents: $(ls -la)"
-      echo "🐍 Python version: $(python --version)"
-      echo "🐍 Python path: $(which python)"
-      echo "📦 Upgrading pip and setuptools..."
-      python -m pip install --upgrade pip
-      python -m pip install --upgrade wheel setuptools
-      echo "📦 Checking requirements file..."
-      echo "📁 Requirements file: $(ls -la requirements-minimal.txt)"
-      echo "📦 Installing MINIMAL dependencies..."
-      python -m pip install -r requirements-minimal.txt --no-cache-dir --verbose
-      echo "📦 Checking installed packages..."
-      pip list
-      echo "✅ Verifying core packages..."
-      python -c "import fastapi; print('✅ FastAPI installed')"
-      python -c "import uvicorn; print('✅ Uvicorn installed')"
-      python -c "import supabase; print('✅ Supabase installed')"
-      echo "✅ Build completed successfully"
+      echo "📦 Installing Python packages..."
+      pip install --upgrade pip setuptools wheel
+      pip install -r backend/requirements-simple.txt --verbose
+      echo "✅ Package installation completed!"
+      echo "🔍 Verifying critical packages..."
+      python -c "import fastapi; print('✅ FastAPI imported')"
+      python -c "import selenium; print('✅ Selenium imported')"
+      python -c "import supabase; print('✅ Supabase imported')"
+      python -c "import requests; print('✅ Requests imported')"
+      echo "🎯 All packages verified successfully!"
     startCommand: |
-      echo "🚀 Starting Lavangam Consolidated Backend..."
-      cd backend
+      echo "🚀 Starting Lavangam Backend..."
       echo "📁 Current directory: $(pwd)"
-      echo "📁 Contents: $(ls -la)"
-      echo "🐍 Python version: $(python --version)"
-      echo "📦 Installed packages: $(pip list | head -10)"
-      echo "🔍 Checking FastAPI availability..."
-      python -c "import fastapi; print('✅ FastAPI is available')" || echo "❌ FastAPI not found"
-      echo "🚀 Starting consolidated backend with all services..."
-      python render_consolidated.py
+      echo "📦 Python version: $(python --version)"
+      echo "🔍 Starting backend with original working code..."
+      cd backend && python render_consolidated.py
+    healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.7
-      - key: RENDER_ENVIRONMENT
-        value: production
       - key: PORT
         value: 8000
       - key: DB_HOST
         value: 44.244.61.85
-      - key: DB_PORT
-        value: 3306
       - key: DB_NAME
         value: Toolinformation
       - key: DB_USER
-        value: root
+        value: admin
       - key: DB_PASSWORD
-        value: thanuja  # ⚠️ Consider setting this in Render UI
-      - key: FILE_MANAGER_PORT
-        value: 5002
-      - key: EPROC_SERVER_PORT
-        value: 5023
-      - key: SYSTEM_USAGE_PORT
-        value: 5024
-      - key: DASHBOARD_API_PORT
-        value: 8004
-      - key: SCRAPERS_API_PORT
-        value: 5022
-      - key: ANALYTICS_API_PORT
-        value: 8001
-      - key: ADDITIONAL_ANALYTICS_PORT
-        value: 8002
-      - key: EPROC_WEBSOCKET_PORT
-        value: 5020
-      - key: EPROC_API_PORT
-        value: 5021
+        value: admin123
       - key: SUPABASE_URL
-        value: https://zjfjaezztfydiryzfd.supabase.co
+        value: https://zjfjaezztfydiryzsyvd.supabase.co
       - key: SUPABASE_KEY
-        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqZmphZXp6dGZ5ZGlyeXpzeXZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTAyNzAyMSwiZXhwIjoyMDY2NjAzMDIxfQ.sRbGz6wbBoMmY8Ol3vEPc4VOh2oEWpcONi9DkUsTpKk
-    healthCheckPath: /health
-    autoDeploy: true
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqZmphZXp6dGZ5ZGlyeXpzeXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEwMjcwMjEsImV4cCI6MjA2NjYwMzAyMX0.6ZVMwXK4aMGmR68GTYo0yt_L7bOg5QWtElTaa8heQos
+      - key: RENDER_ENVIRONMENT
+        value: production

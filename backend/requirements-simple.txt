@@ -1,0 +1,31 @@
+# Simple requirements for Lavangam Backend - Render compatible
+# Using compatible versions for Python 3.11+
+
+# Core FastAPI and server
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# Selenium for web automation (CRITICAL - was missing!)
+selenium>=4.15.0
+
+# HTTP requests
+requests>=2.31.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Supabase client
+supabase>=2.0.0
+
+# Database connectivity
+mysql-connector-python>=8.2.0
+
+# Data processing (compatible versions)
+pandas>=2.0.0
+numpy>=1.24.0
+
+# System monitoring
+psutil>=5.9.0
+
+# Note: These versions are compatible with Python 3.11+ on Render
+# Including selenium which was causing the deployment failure
