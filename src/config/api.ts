@@ -1,38 +1,28 @@
-// Centralized API configuration with environment variable support
+// Centralized API configuration for Lavangam Consolidated Backend
 export const API_CONFIG = {
-  // Main API base URL - Updated to use AWS EC2 instance or Render
+  // Main consolidated API base URL
   MAIN_API: window.location.hostname === 'localhost' 
     ? 'http://localhost:8000'
-    : window.location.hostname.includes('render.com')
-    ? import.meta.env.VITE_BACKEND_URL || 'https://your-backend-service.onrender.com'  // Use environment variable
-    : 'http://18.236.173.88:8000',
+    : 'https://lavangam-backend.onrender.com',
   
-  // System metrics API
+  // All services now consolidated under one backend
   SYSTEM_API: window.location.hostname === 'localhost' 
-    ? 'http://localhost:8001'
-    : window.location.hostname.includes('render.com')
-    ? import.meta.env.VITE_BACKEND_URL || 'https://your-backend-service.onrender.com'  // Use environment variable
-    : 'http://18.236.173.88:8001',
+    ? 'http://localhost:8000'
+    : 'https://lavangam-backend.onrender.com',
   
-  // Dashboard API
+  // Dashboard API (consolidated)
   DASHBOARD_API: window.location.hostname === 'localhost' 
-    ? 'http://localhost:8004'
-    : window.location.hostname.includes('render.com')
-    ? import.meta.env.VITE_BACKEND_URL || 'https://your-backend-service.onrender.com'  // Use environment variable
-    : 'http://18.236.173.88:8004',
+    ? 'http://localhost:8000'
+    : 'https://lavangam-backend.onrender.com',
   
-  // WebSocket URLs
+  // WebSocket URLs (consolidated)
   WS_MAIN: window.location.hostname === 'localhost'
-    ? 'ws://localhost:8002'
-    : window.location.hostname.includes('render.com')
-    ? (import.meta.env.VITE_BACKEND_URL || 'https://your-backend-service.onrender.com').replace('https://', 'wss://')  // Convert to WSS
-    : 'ws://18.236.173.88:8002',
+    ? 'ws://localhost:8000'
+    : 'wss://lavangam-backend.onrender.com',
   
   WS_DASHBOARD: window.location.hostname === 'localhost'
-    ? 'ws://localhost:8002'
-    : window.location.hostname.includes('render.com')
-    ? (import.meta.env.VITE_BACKEND_URL || 'https://your-backend-service.onrender.com').replace('https://', 'wss://')  // Convert to WSS
-    : 'ws://18.236.173.88:8002'
+    ? 'ws://localhost:8000'
+    : 'wss://lavangam-backend.onrender.com'
 };
 
 // Environment variable configuration
@@ -43,8 +33,8 @@ export const ENV_CONFIG = {
   SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
   SUPABASE_KEY: import.meta.env.VITE_SUPABASE_KEY,
   
-  // Backend URL (set this in Render)
-  BACKEND_URL: import.meta.env.VITE_BACKEND_URL,
+  // Backend URL (consolidated)
+  BACKEND_URL: 'https://lavangam-backend.onrender.com',
   
   // Environment detection
   IS_PRODUCTION: import.meta.env.PROD,
@@ -52,26 +42,16 @@ export const ENV_CONFIG = {
   IS_RENDER: window.location.hostname.includes('render.com')
 };
 
-// Helper function to get API URL for different services
+// Helper function to get API URL for different services (all consolidated)
 export const getApiUrl = (service: 'main' | 'system' | 'dashboard' = 'main') => {
-  switch (service) {
-    case 'system':
-      return API_CONFIG.SYSTEM_API;
-    case 'dashboard':
-      return API_CONFIG.DASHBOARD_API;
-    default:
-      return API_CONFIG.MAIN_API;
-  }
+  // All services now use the same consolidated backend
+  return API_CONFIG.MAIN_API;
 };
 
-// Helper function to get WebSocket URL
+// Helper function to get WebSocket URL (consolidated)
 export const getWsUrl = (service: 'main' | 'dashboard' = 'main') => {
-  switch (service) {
-    case 'dashboard':
-      return API_CONFIG.WS_DASHBOARD;
-    default:
-      return API_CONFIG.WS_MAIN;
-  }
+  // All WebSocket connections now use the same consolidated backend
+  return API_CONFIG.WS_MAIN;
 };
 
 // Helper function to check if API keys are available
@@ -86,6 +66,6 @@ export const checkApiKeys = () => {
   return {
     hasAllKeys: missingKeys.length === 0,
     missingKeys,
-    isConfigured: ENV_CONFIG.IS_RENDER ? !!ENV_CONFIG.BACKEND_URL : true
+    isConfigured: true // Always configured now with consolidated backend
   };
 }; 

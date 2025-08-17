@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthPage } from './components/Auth/AuthPage';
 import { DashboardLayout } from './components/Layout/DashboardLayout';
 import { HomePage } from './components/HomePage';
+import { BackendConnectionTest } from './components/BackendConnectionTest';
+import { SimpleNav } from './components/SimpleNav';
 
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -17,11 +19,15 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={user ? <Navigate to="/dashboard" /> : <HomePage />} />
-      <Route path="/auth" element={user ? <Navigate to="/dashboard" /> : <AuthPage />} />
-      <Route path="/dashboard" element={user ? <DashboardLayout /> : <Navigate to="/auth" />} />
-    </Routes>
+    <>
+      <SimpleNav />
+      <Routes>
+        <Route path="/" element={user ? <Navigate to="/dashboard" /> : <HomePage />} />
+        <Route path="/auth" element={user ? <Navigate to="/dashboard" /> : <AuthPage />} />
+        <Route path="/dashboard" element={user ? <DashboardLayout /> : <Navigate to="/auth" />} />
+        <Route path="/backend-test" element={<BackendConnectionTest />} />
+      </Routes>
+    </>
   );
 };
 
