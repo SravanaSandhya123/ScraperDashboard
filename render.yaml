@@ -11,9 +11,9 @@ services:
       python -m pip install -r requirements-render.txt --no-cache-dir
       echo "✅ Build completed"
     startCommand: |
-      echo "🚀 Starting Lavangam Backend..."
+      echo "🚀 Starting Lavangam Multi-Port Backend..."
       cd backend
-      python deploy_render.py
+      python render_multi_port.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.13.4
@@ -21,5 +21,23 @@ services:
         value: production
       - key: PORT
         value: 8000
+      - key: DB_HOST
+        value: 44.244.61.85
+      - key: DB_PORT
+        value: 3306
+      - key: DB_NAME
+        value: Toolinformation
+      - key: DB_USER
+        value: root
+      - key: DB_PASSWORD
+        value: thanuja
+      - key: FILE_MANAGER_PORT
+        value: 5002
+      - key: EPROC_SERVER_PORT
+        value: 5023
+      - key: SYSTEM_USAGE_PORT
+        value: 5024
+      - key: DASHBOARD_API_PORT
+        value: 8004
     healthCheckPath: /ping
     autoDeploy: true

@@ -137,11 +137,11 @@ def merge_download(run_id):
     if not merged_df.empty:
         try:
             connection = pymysql.connect(
-                host='44.244.61.85',
-                port=3306,
-                user='root',
-                password='thanuja',
-                db='Toolinformation',
+                host=os.getenv('DB_HOST', '44.244.61.85'),
+                port=int(os.getenv('DB_PORT', '3306')),
+                user=os.getenv('DB_USER', 'root'),
+                password=os.getenv('DB_PASSWORD', 'thanuja'),
+                db=os.getenv('DB_NAME', 'Toolinformation'),
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor
             )
@@ -337,11 +337,11 @@ def ireps_merge_download(run_id):
     if not merged_df.empty:
         try:
             connection = pymysql.connect(
-                host='44.244.61.85',
-                port=3306,
-                user='root',
-                password='thanuja',
-                db='Toolinformation',
+                host=os.getenv('DB_HOST', '44.244.61.85'),
+                port=int(os.getenv('DB_PORT', '3306')),
+                user=os.getenv('DB_USER', 'root'),
+                password=os.getenv('DB_PASSWORD', 'thanuja'),
+                db=os.getenv('DB_NAME', 'Toolinformation'),
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor
             )
