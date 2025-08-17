@@ -646,6 +646,156 @@ async def test_supabase_connection():
             "supabase_url": supabase_url
         }
 
+@app.get("/supabase/discover-tables")
+async def discover_supabase_tables():
+    """Discover what tables exist in Supabase database"""
+    try:
+        if not supabase:
+            return {
+                "status": "error",
+                "message": "Supabase client not initialized",
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        print("🔍 Discovering Supabase tables...")
+        
+        # Try to get information about the database
+        try:
+            # Try to access a system table or get database info
+            response = supabase.table("_supabase_migrations").select("*").limit(1).execute()
+            return {
+                "status": "success",
+                "message": "System table access successful",
+                "tables_found": ["_supabase_migrations"],
+                "timestamp": datetime.now().isoformat(),
+                "supabase_url": supabase_url
+            }
+        except Exception as e:
+            print(f"⚠️ System table access failed: {e}")
+            
+            # Try common table names one by one
+            common_tables = [
+                "users", "user", "profiles", "auth_users", "customers",
+                "admin_users", "user_profiles", "user_data", "members",
+                "clients", "employees", "staff", "accounts"
+            ]
+            
+            found_tables = []
+            
+            for table_name in common_tables:
+                try:
+                    print(f"🔍 Testing table: {table_name}")
+                    response = supabase.table(table_name).select("count").limit(1).execute()
+                    found_tables.append(table_name)
+                    print(f"✅ Table {table_name} exists")
+                except Exception as table_error:
+                    print(f"❌ Table {table_name} not found: {table_error}")
+                    continue
+            
+            if found_tables:
+                return {
+                    "status": "success",
+                    "message": f"Found {len(found_tables)} tables in your database",
+                    "tables_found": found_tables,
+                    "suggestion": f"Try using one of these table names: {', '.join(found_tables)}",
+                    "timestamp": datetime.now().isoformat(),
+                    "supabase_url": supabase_url
+                }
+            else:
+                return {
+                    "status": "warning",
+                    "message": "No common user tables found",
+                    "tables_tried": common_tables,
+                    "suggestion": "Your database might have different table names. Check your Supabase dashboard.",
+                    "timestamp": datetime.now().isoformat(),
+                    "supabase_url": supabase_url
+                }
+                
+    except Exception as e:
+        print(f"❌ Table discovery error: {e}")
+        return {
+            "status": "error",
+            "message": "Failed to discover tables",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+            "supabase_url": supabase_url
+        }
+
+@app.get("/supabase/fetch-users/{table_name}")
+async def fetch_users_from_table(table_name: str):
+    """Fetch users from a specific table name"""
+    try:
+        if not supabase:
+            return {
+                "status": "error",
+                "message": "Supabase client not initialized",
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        print(f"🔍 Fetching users from table: {table_name}")
+        
+        try:
+            # Try to fetch data from the specified table
+            response = supabase.table(table_name).select("*").execute()
+            
+            if response.data:
+                return {
+                    "status": "success",
+                    "table": table_name,
+                    "user_count": len(response.data),
+                    "users": response.data,
+                    "timestamp": datetime.now().isoformat(),
+                    "message": f"Successfully fetched {len(response.data)} users from {table_name}"
+                }
+            else:
+                return {
+                    "status": "warning",
+                    "table": table_name,
+                    "user_count": 0,
+                    "message": f"Table {table_name} exists but has no data",
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+        except Exception as table_error:
+            print(f"❌ Table {table_name} access failed: {table_error}")
+            
+            # Check if it's a permission issue
+            if "permission" in str(table_error).lower():
+                return {
+                    "status": "error",
+                    "table": table_name,
+                    "message": f"Permission denied accessing table {table_name}",
+                    "error": str(table_error),
+                    "suggestion": "Check your Supabase API key permissions",
+                    "timestamp": datetime.now().isoformat()
+                }
+            elif "does not exist" in str(table_error).lower():
+                return {
+                    "status": "error",
+                    "table": table_name,
+                    "message": f"Table {table_name} does not exist",
+                    "error": str(table_error),
+                    "suggestion": "Use /supabase/discover-tables to see available tables",
+                    "timestamp": datetime.now().isoformat()
+                }
+            else:
+                return {
+                    "status": "error",
+                    "table": table_name,
+                    "message": f"Failed to access table {table_name}",
+                    "error": str(table_error),
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+    except Exception as e:
+        print(f"❌ Fetch users error: {e}")
+        return {
+            "status": "error",
+            "message": "Failed to fetch users",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
 # ============================================================================
 # AI ASSISTANT ENDPOINT
 # ============================================================================
