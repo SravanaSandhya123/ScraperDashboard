@@ -8,7 +8,7 @@ services:
     env: python
     repo: https://github.com/Mahi-7801/render-frontend
     branch: main
-    buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_main-backend.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -24,7 +24,7 @@ services:
     env: python
     repo: https://github.com/Mahi-7801/render-frontend
     branch: main
-    buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_eproc_server.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -40,7 +40,7 @@ services:
     env: python
     repo: https://github.com/Mahi-7801/render-frontend
     branch: main
-    buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_system_usage_api.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -56,7 +56,7 @@ services:
     env: python
     repo: https://github.com/Mahi-7801/render-frontend
     branch: main
-    buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_8003_service.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -72,7 +72,7 @@ services:
     env: python
     repo: https://github.com/Mahi-7801/render-frontend
     branch: main
-    buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_dashboard_api.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -88,7 +88,7 @@ services:
     env: python
     repo: https://github.com/Mahi-7801/render-frontend
     branch: main
-    buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_admin_metrics_api.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -104,7 +104,7 @@ services:
     env: python
     repo: https://github.com/Mahi-7801/render-frontend
     branch: main
-    buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_scraper_ws.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -120,7 +120,7 @@ services:
     env: python
     repo: https://github.com/Mahi-7801/render-frontend
     branch: main
-    buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_system_usage_api.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -136,7 +136,7 @@ services:
     env: python
     repo: https://github.com/Mahi-7801/render-frontend
     branch: main
-    buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_dashboard_websocket.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -152,7 +152,7 @@ services:
     env: python
     repo: https://github.com/Mahi-7801/render-frontend
     branch: main
-    buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_eproc_server.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -168,7 +168,7 @@ services:
     env: python
     repo: https://github.com/Mahi-7801/render-frontend
     branch: main
-    buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_file_manager.py
     envVars:
       - key: RENDER_ENVIRONMENT
