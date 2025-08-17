@@ -1,0 +1,23 @@
+# Minimal requirements for emergency fallback
+# Use this if the main requirements fail to install
+
+# Core FastAPI (essential)
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Basic utilities
+python-multipart==0.0.6
+python-dotenv==1.0.0
+
+# Database (essential)
+pymysql==1.1.0
+
+# Supabase (essential)
+supabase==2.0.2
+
+# WebDriver (essential for your scraping)
+selenium==4.15.2
+webdriver-manager==4.0.1
+
+# Note: Skipping pandas/numpy to avoid Python 3.13 compilation issues
+# These can be added later once Python version is confirmed

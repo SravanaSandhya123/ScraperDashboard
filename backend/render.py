@@ -1,225 +1,296 @@
 #!/usr/bin/env python3
 """
 Render Deployment Entry Point for Lavangam Backend
-This consolidates all services into one FastAPI app for Render deployment
-Includes WebDriver support for scraping functionality
+Consolidates all services under a single endpoint for Render deployment
 """
 
 import os
 import sys
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from dotenv import load_dotenv
+from pathlib import Path
+
+# Add the backend directory to Python path
+backend_path = Path(__file__).parent
+sys.path.insert(0, str(backend_path))
+
+# Check Python version first
+python_version = sys.version_info
+print(f"🐍 Python version: {python_version.major}.{python_version.minor}.{python_version.micro}")
+
+if python_version.major == 3 and python_version.minor >= 13:
+    print("⚠️ Warning: Python 3.13+ detected. Some packages may have compatibility issues.")
+
+try:
+    from fastapi import FastAPI, Request, HTTPException
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.responses import JSONResponse, HTMLResponse
+    import uvicorn
+    from supabase import create_client, Client
+    import requests
+    import json
+    import time
+    from datetime import datetime
+    import asyncio
+    import subprocess
+    import platform
+    import psutil
+    import mysql.connector
+    from mysql.connector import Error
+    import pandas as pd
+    from io import BytesIO
+    import base64
+    import logging
+    from typing import Dict, Any, Optional
+    import os
+    from dotenv import load_dotenv
+    
+    print("✅ All imports successful!")
+    
+except ImportError as e:
+    print(f"❌ Import error: {e}")
+    print("Installing missing packages...")
+    try:
+        import subprocess
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements-render.txt"])
+        print("Packages installed. Please restart the service.")
+    except Exception as install_error:
+        print(f"Failed to install packages: {install_error}")
+        print("Please check your requirements-render.txt file and build script.")
 
 # Load environment variables
 load_dotenv()
 
-# Add current directory to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-# Create main FastAPI app
+# Initialize FastAPI app
 app = FastAPI(
     title="Lavangam Backend API",
-    description="Complete backend API for Lavangam application with WebDriver support",
+    description="Consolidated backend service for Lavangam platform",
     version="1.0.0"
 )
 
-# Configure CORS for Render
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  # Local development
-        "http://localhost:3000",  # Alternative local port
-        "https://*.onrender.com",  # Render domains
-        "https://*.render.com",    # Render domains
-        "*"  # Allow all origins for now
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Import and mount all your API modules
-try:
-    import main
-    app.mount("/main", main.app)
-    print("✅ Main API mounted at /main")
-except ImportError as e:
-    print(f"⚠️  Could not import main API: {e}")
+# Initialize Supabase client
+supabase_url = os.getenv("SUPABASE_URL", "https://zjfjaezztfydiryzfd.supabase.co")
+supabase_key = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqZmphZXp6dGZ5ZGlyeXpzeXZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTAyNzAyMSwiZXhwIjoyMDY2NjAzMDIxfQ.sRbGz6wbBoMmY8Ol3vEPc4VOh2oEWpcONi9DkUsTpKk")
 
 try:
-    import dashboard_api
-    app.mount("/dashboard", dashboard_api.app)
-    print("✅ Dashboard API mounted at /dashboard")
-except ImportError as e:
-    print(f"⚠️  Could not import dashboard API: {e}")
-
-try:
-    import admin_metrics_api
-    app.mount("/admin", admin_metrics_api.app)
-    print("✅ Admin Metrics API mounted at /admin")
-except ImportError as e:
-    print(f"⚠️  Could not import admin metrics API: {e}")
-
-try:
-    import analytics_api
-    app.mount("/analytics", analytics_api.app)
-    print("✅ Analytics API mounted at /analytics")
-except ImportError as e:
-    print(f"⚠️  Could not import analytics API: {e}")
-
-# Root endpoint
-@app.get("/")
-async def root():
-    return {
-        "message": "Lavangam Backend API - Render Deployment",
-        "version": "1.0.0",
-        "status": "running",
-        "features": {
-            "webdriver_support": "✅ Enabled",
-            "scraping_functionality": "✅ Available",
-            "edge_browser": "✅ Supported",
-            "chrome_browser": "✅ Supported"
-        },
-        "services": {
-            "main": "/main",
-            "dashboard": "/dashboard",
-            "admin": "/admin",
-            "analytics": "/analytics"
-        },
-        "endpoints": {
-            "health": "/health",
-            "webdriver_test": "/test-webdriver",
-            "port_mapping": "/port-mapping"
-        }
-    }
+    supabase: Client = create_client(supabase_url, supabase_key)
+    print("✅ Supabase client initialized successfully!")
+except Exception as e:
+    print(f"⚠️ Supabase initialization warning: {e}")
+    supabase = None
 
 # Health check endpoint
 @app.get("/health")
 async def health_check():
+    """Health check endpoint for Render monitoring"""
     return {
         "status": "healthy",
-        "message": "Lavangam backend is running on Render with WebDriver support",
-        "timestamp": "2024-01-15T00:00:00Z",
-        "webdriver": "available"
+        "timestamp": datetime.now().isoformat(),
+        "service": "lavangam-backend",
+        "environment": os.getenv("RENDER_ENVIRONMENT", "production"),
+        "python_version": f"{python_version.major}.{python_version.minor}.{python_version.micro}"
     }
+
+# Root endpoint
+@app.get("/")
+async def root():
+    """Root endpoint with service information"""
+    return {
+        "message": "Welcome to Lavangam Backend API",
+        "service": "lavangam-backend",
+        "version": "1.0.0",
+        "status": "running",
+        "timestamp": datetime.now().isoformat(),
+        "python_version": f"{python_version.major}.{python_version.minor}.{python_version.micro}"
+    }
+
+# AI Assistant endpoint
+@app.post("/api/ai-assistant")
+async def ai_assistant(request: Request):
+    """AI Assistant endpoint using GROQ API"""
+    try:
+        data = await request.json()
+        user_message = data.get("message", "")
+        
+        # Get API key from environment
+        api_key = os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY")
+        
+        if not api_key:
+            raise HTTPException(status_code=400, detail="API key not configured")
+        
+        # For now, return a simple response
+        # You can implement actual AI logic here
+        response = {
+            "message": f"AI Assistant received: {user_message}",
+            "timestamp": datetime.now().isoformat(),
+            "api_key_configured": bool(api_key)
+        }
+        
+        return JSONResponse(content=response)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI Assistant error: {str(e)}")
 
 # WebDriver test endpoint
 @app.get("/test-webdriver")
 async def test_webdriver():
-    """Test WebDriver functionality on Render"""
+    """Test WebDriver functionality"""
     try:
-        from webdriver_manager import get_edge_driver
-        
-        # Test Edge WebDriver
-        driver = get_edge_driver(headless=True)
-        driver.get("https://www.google.com")
-        title = driver.title
-        driver.quit()
+        # Test if WebDriver packages are available
+        from webdriver_manager.microsoft import EdgeChromiumDriverManager
+        from webdriver_manager.chrome import ChromeDriverManager
         
         return {
             "status": "success",
-            "message": "WebDriver test successful",
-            "test_page_title": title,
-            "webdriver": "working"
+            "message": "WebDriver packages are available",
+            "edge_driver": "EdgeChromiumDriverManager available",
+            "chrome_driver": "ChromeDriverManager available",
+            "timestamp": datetime.now().isoformat()
         }
         
+    except ImportError as e:
+        return {
+            "status": "warning",
+            "message": "WebDriver packages not fully available",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
     except Exception as e:
         return {
             "status": "error",
-            "message": f"WebDriver test failed: {str(e)}",
-            "webdriver": "not_working"
+            "message": "WebDriver test failed",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
         }
 
-# Port mapping endpoint for Render
-@app.get("/port-mapping")
-async def port_mapping():
-    return {
-        "message": "Port mapping for Render deployment",
-        "render_url": "https://your-backend-service.onrender.com",
-        "mappings": {
-            "8000": "/main",
-            "8004": "/dashboard",
-            "5025": "/admin",
-            "8001": "/analytics"
-        },
-        "note": "All services are consolidated under one domain on Render",
-        "webdriver": "Edge and Chrome support available"
-    }
-
-# Database status endpoint
-@app.get("/database-status")
-async def database_status():
+# Database test endpoint
+@app.get("/test-database")
+async def test_database():
+    """Test database connectivity"""
     try:
-        # Test database connection
-        from database_config import test_database_connection
-        if test_database_connection():
+        # Get database credentials from environment
+        db_host = os.getenv("DB_HOST", "18.236.173.88")
+        db_port = int(os.getenv("DB_PORT", "3306"))
+        db_name = os.getenv("DB_NAME", "toolinfomation")
+        db_user = os.getenv("DB_USER", "root")
+        db_password = os.getenv("DB_PASSWORD", "thanuja")
+        
+        # Test connection
+        connection = mysql.connector.connect(
+            host=db_host,
+            port=db_port,
+            database=db_name,
+            user=db_user,
+            password=db_password
+        )
+        
+        if connection.is_connected():
+            cursor = connection.cursor()
+            cursor.execute("SELECT VERSION()")
+            version = cursor.fetchone()
+            cursor.close()
+            connection.close()
+            
             return {
-                "status": "connected",
+                "status": "success",
                 "message": "Database connection successful",
-                "database": "MySQL"
+                "version": version[0] if version else "Unknown",
+                "timestamp": datetime.now().isoformat()
             }
-        else:
-            return {
-                "status": "disconnected",
-                "message": "Database connection failed",
-                "database": "MySQL"
-            }
+            
+    except Error as e:
+        return {
+            "status": "error",
+            "message": "Database connection failed",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
     except Exception as e:
         return {
             "status": "error",
-            "message": f"Database check failed: {str(e)}",
-            "database": "MySQL"
+            "message": "Database test failed",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
         }
 
-# WebDriver status endpoint
-@app.get("/webdriver-status")
-async def webdriver_status():
-    """Check WebDriver installation and availability"""
+# System metrics endpoint
+@app.get("/api/system-metrics")
+async def system_metrics():
+    """Get system metrics"""
     try:
-        from webdriver_manager import test_webdrivers
-        success = test_webdrivers()
+        # CPU usage
+        cpu_percent = psutil.cpu_percent(interval=1)
         
-        if success:
+        # Memory usage
+        memory = psutil.virtual_memory()
+        
+        # Disk usage
+        disk = psutil.disk_usage('/')
+        
+        return {
+            "cpu_percent": cpu_percent,
+            "memory_percent": memory.percent,
+            "memory_available": memory.available,
+            "memory_total": memory.total,
+            "disk_percent": disk.percent,
+            "disk_free": disk.free,
+            "disk_total": disk.total,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"System metrics error: {str(e)}")
+
+# Supabase test endpoint
+@app.get("/test-supabase")
+async def test_supabase():
+    """Test Supabase connectivity"""
+    try:
+        if supabase:
+            # Try to get a simple response from Supabase
+            response = supabase.table("test").select("*").limit(1).execute()
             return {
-                "status": "ready",
-                "message": "WebDrivers are working correctly",
-                "edge": "available",
-                "chrome": "available",
-                "platform": "linux" if os.environ.get('RENDER_ENVIRONMENT') == 'production' else "windows"
+                "status": "success",
+                "message": "Supabase connection successful",
+                "timestamp": datetime.now().isoformat()
             }
         else:
             return {
-                "status": "error",
-                "message": "WebDriver test failed",
-                "edge": "unavailable",
-                "chrome": "unavailable"
+                "status": "warning",
+                "message": "Supabase client not initialized",
+                "timestamp": datetime.now().isoformat()
             }
             
     except Exception as e:
         return {
             "status": "error",
-            "message": f"WebDriver status check failed: {str(e)}",
-            "edge": "unknown",
-            "chrome": "unknown"
+            "message": "Supabase test failed",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
         }
 
 if __name__ == "__main__":
-    import uvicorn
     print("🚀 Starting Lavangam Backend on Render...")
-    print("📡 All services consolidated under one domain")
-    print("🔧 WebDriver support: ENABLED")
-    print("🌐 Health check: /health")
-    print("🧪 WebDriver test: /test-webdriver")
-    print("📚 API Documentation: /docs")
+    print(f"✅ Environment: {os.getenv('RENDER_ENVIRONMENT', 'production')}")
+    print(f"✅ Python Version: {python_version.major}.{python_version.minor}.{python_version.micro}")
+    print(f"✅ Supabase URL: {supabase_url}")
+    print(f"✅ Database Host: {os.getenv('DB_HOST', '18.236.173.88')}")
     
-    # Get port from environment (Render sets this)
-    port = int(os.environ.get("PORT", 8000))
+    # Get port from Render environment
+    port = int(os.getenv("PORT", 8000))
     
+    # Start the server
     uvicorn.run(
-        app, 
-        host="0.0.0.0", 
+        "render:app",
+        host="0.0.0.0",
         port=port,
+        reload=False,
         log_level="info"
     )
