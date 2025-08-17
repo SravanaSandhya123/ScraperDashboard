@@ -16,9 +16,9 @@ services:
       python -m pip install --upgrade pip
       python -m pip install --upgrade wheel setuptools
       echo "📦 Checking requirements file..."
-      echo "📁 Requirements file: $(ls -la requirements-render.txt)"
-      echo "📦 Installing dependencies from requirements-render.txt..."
-      python -m pip install -r requirements-render.txt --no-cache-dir --verbose
+      echo "📁 Requirements file: $(ls -la requirements-minimal.txt)"
+      echo "📦 Installing MINIMAL dependencies..."
+      python -m pip install -r requirements-minimal.txt --no-cache-dir --verbose
       echo "📦 Checking installed packages..."
       pip list
       echo "✅ Verifying core packages..."
