@@ -1,8 +1,13 @@
+# Render deployment configuration for Lavangam backend services
+# Repository: https://github.com/Mahi-7801/render-frontend
+
 services:
   # Main backend service - Port 8000
   - type: web
     name: lavangam-backend
     env: python
+    repo: https://github.com/Mahi-7801/render-frontend
+    branch: main
     buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_main-backend.py
     envVars:
@@ -17,6 +22,8 @@ services:
   - type: web
     name: lavangam-backend-eproc
     env: python
+    repo: https://github.com/Mahi-7801/render-frontend
+    branch: main
     buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_eproc_server.py
     envVars:
@@ -31,6 +38,8 @@ services:
   - type: web
     name: lavangam-backend-system
     env: python
+    repo: https://github.com/Mahi-7801/render-frontend
+    branch: main
     buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_system_usage_api.py
     envVars:
@@ -45,6 +54,8 @@ services:
   - type: web
     name: lavangam-backend-8003
     env: python
+    repo: https://github.com/Mahi-7801/render-frontend
+    branch: main
     buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_8003_service.py
     envVars:
@@ -59,6 +70,8 @@ services:
   - type: web
     name: lavangam-backend-dashboard
     env: python
+    repo: https://github.com/Mahi-7801/render-frontend
+    branch: main
     buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_dashboard_api.py
     envVars:
@@ -73,6 +86,8 @@ services:
   - type: web
     name: lavangam-backend-metrics
     env: python
+    repo: https://github.com/Mahi-7801/render-frontend
+    branch: main
     buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_admin_metrics_api.py
     envVars:
@@ -87,6 +102,8 @@ services:
   - type: web
     name: lavangam-backend-scraper
     env: python
+    repo: https://github.com/Mahi-7801/render-frontend
+    branch: main
     buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_scraper_ws.py
     envVars:
@@ -101,6 +118,8 @@ services:
   - type: web
     name: lavangam-backend-5021
     env: python
+    repo: https://github.com/Mahi-7801/render-frontend
+    branch: main
     buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_system_usage_api.py
     envVars:
@@ -115,6 +134,8 @@ services:
   - type: web
     name: lavangam-backend-websocket
     env: python
+    repo: https://github.com/Mahi-7801/render-frontend
+    branch: main
     buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_dashboard_websocket.py
     envVars:
@@ -129,6 +150,8 @@ services:
   - type: web
     name: lavangam-backend-5023
     env: python
+    repo: https://github.com/Mahi-7801/render-frontend
+    branch: main
     buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_eproc_server.py
     envVars:
@@ -143,6 +166,8 @@ services:
   - type: web
     name: lavangam-backend-files
     env: python
+    repo: https://github.com/Mahi-7801/render-frontend
+    branch: main
     buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt --force-reinstall --no-cache-dir
     startCommand: python backend/render_scripts/start_file_manager.py
     envVars:
