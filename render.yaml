@@ -1,4 +1,6 @@
 services:
+  # 🚀 FORCE REDEPLOY: Consolidated Backend - All services on single port
+  # 📅 Timestamp: 2025-08-17 13:35:00 - Force rebuild with consolidated backend
   - type: web
     name: lavangam-backend
     env: python
