@@ -7,3 +7,12 @@ flask-socketio
 requests
 python-dotenv
 psutil
+pymysql
+mysql-connector-python
+supabase
+pandas
+numpy
+openpyxl
+xlsxwriter
+selenium
+webdriver-manager
