@@ -1,5 +1,7 @@
 # Render deployment configuration for Lavangam backend services
 # Repository: https://github.com/Mahi-7801/render-frontend
+# UPDATED: Fixed all buildCommand paths to use backend/requirements-render.txt
+# This ensures all services can find the requirements file correctly
 
 services:
   # Main backend service - Port 8000
