@@ -8,10 +8,19 @@ services:
     buildCommand: |
       echo "🚀 Starting Lavangam Backend build..."
       cd backend
+      echo "📁 Current directory: $(pwd)"
+      echo "📁 Contents: $(ls -la)"
+      echo "🐍 Python version: $(python --version)"
+      echo "🐍 Python path: $(which python)"
+      echo "📦 Upgrading pip and setuptools..."
       python -m pip install --upgrade pip
       python -m pip install --upgrade wheel setuptools
-      echo "📦 Installing dependencies..."
-      python -m pip install -r requirements-render.txt --no-cache-dir
+      echo "📦 Checking requirements file..."
+      echo "📁 Requirements file: $(ls -la requirements-render.txt)"
+      echo "📦 Installing dependencies from requirements-render.txt..."
+      python -m pip install -r requirements-render.txt --no-cache-dir --verbose
+      echo "📦 Checking installed packages..."
+      pip list
       echo "✅ Verifying core packages..."
       python -c "import fastapi; print('✅ FastAPI installed')"
       python -c "import uvicorn; print('✅ Uvicorn installed')"
