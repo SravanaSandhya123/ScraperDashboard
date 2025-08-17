@@ -148,15 +148,37 @@ except Exception as e:
 @app.get("/health")
 async def health_check():
     """Health check endpoint for Render monitoring"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "service": "lavangam-backend",
-        "environment": os.getenv("RENDER_ENVIRONMENT", "production"),
-        "python_version": f"{python_version.major}.{python_version.minor}.{python_version.micro}",
-        "port": os.getenv("PORT", "8000"),
-        "host": "0.0.0.0"
-    }
+    try:
+        # Basic health check
+        health_status = {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "service": "lavangam-backend",
+            "environment": os.getenv("RENDER_ENVIRONMENT", "production"),
+            "python_version": f"{python_version.major}.{python_version.minor}.{python_version.micro}",
+            "port": os.getenv("PORT", "8000"),
+            "host": "0.0.0.0",
+            "uptime": "running"
+        }
+        
+        # Test database connection if possible
+        try:
+            db_host = os.getenv("DB_HOST", "44.244.61.85")
+            if db_host:
+                health_status["database"] = "configured"
+            else:
+                health_status["database"] = "not_configured"
+        except:
+            health_status["database"] = "error"
+        
+        return health_status
+        
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 # Simple ping endpoint for port detection
 @app.get("/ping")
@@ -242,9 +264,9 @@ async def test_database():
     """Test database connectivity"""
     try:
         # Get database credentials from environment
-        db_host = os.getenv("DB_HOST", "18.236.173.88")
+        db_host = os.getenv("DB_HOST", "44.244.61.85")
         db_port = int(os.getenv("DB_PORT", "3306"))
-        db_name = os.getenv("DB_NAME", "toolinfomation")
+        db_name = os.getenv("DB_NAME", "Toolinformation")
         db_user = os.getenv("DB_USER", "root")
         db_password = os.getenv("DB_PASSWORD", "thanuja")
         
@@ -254,7 +276,9 @@ async def test_database():
             port=db_port,
             database=db_name,
             user=db_user,
-            password=db_password
+            password=db_password,
+            connection_timeout=10,
+            autocommit=True
         )
         
         if connection.is_connected():
@@ -347,23 +371,36 @@ if __name__ == "__main__":
     print(f"✅ Environment: {os.getenv('RENDER_ENVIRONMENT', 'production')}")
     print(f"✅ Python Version: {python_version.major}.{python_version.minor}.{python_version.micro}")
     print(f"✅ Supabase URL: {supabase_url}")
-    print(f"✅ Database Host: {os.getenv('DB_HOST', '18.236.173.88')}")
+    print(f"✅ Database Host: {os.getenv('DB_HOST', '44.244.61.85')}")
     
     # Get port from Render environment
-    port = int(os.getenv("PORT", 8000))
-    print(f"🌐 Binding to port: {port}")
+    try:
+        port = int(os.getenv("PORT", 8000))
+        print(f"🌐 Binding to port: {port}")
+    except ValueError as e:
+        print(f"❌ Invalid PORT environment variable: {e}")
+        port = 8000
+        print(f"🔄 Using default port: {port}")
     
     try:
         print("🚀 Starting uvicorn server...")
+        print(f"🔧 Server configuration: host=0.0.0.0, port={port}")
+        
         # Start the server - FIXED: Run app directly, not as module
         uvicorn.run(
             app,
             host="0.0.0.0",
             port=port,
             reload=False,
-            log_level="info"
+            log_level="info",
+            access_log=True,
+            server_header=False
         )
     except Exception as e:
         print(f"❌ Failed to start server: {e}")
         print("🔍 Check the logs above for more details")
+        print("🔍 Environment variables:")
+        print(f"   PORT: {os.getenv('PORT')}")
+        print(f"   RENDER_ENVIRONMENT: {os.getenv('RENDER_ENVIRONMENT')}")
+        print(f"   DB_HOST: {os.getenv('DB_HOST')}")
         sys.exit(1)

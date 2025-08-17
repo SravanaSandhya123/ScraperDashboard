@@ -1,4 +1,4 @@
-# Core FastAPI and dependencies (Python 3.13 compatible)
+# Core FastAPI and dependencies (Python 3.11 compatible)
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-multipart==0.0.6
@@ -44,5 +44,5 @@ flask==3.0.0
 flask-cors==4.0.0
 flask-socketio==5.3.6
 
-# Note: Updated to Python 3.13 compatible versions
-# pandas 2.1.4 and numpy 1.26.2 work with Python 3.13
+# Note: Updated to Python 3.11 compatible versions
+# pandas 2.1.4 and numpy 1.26.2 work with Python 3.11
