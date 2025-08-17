@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Startup script for dashboard_api.py on port 8004
+# Startup script for dashboard_api.py
 import os
 import sys
 from pathlib import Path
@@ -7,7 +7,6 @@ from pathlib import Path
 # Set environment variables
 os.environ["RENDER_ENVIRONMENT"] = "production"
 os.environ["DB_HOST"] = "44.244.61.85"
-os.environ["PORT"] = "8004"
 
 # Add backend directory to path
 backend_path = Path(__file__).parent.parent

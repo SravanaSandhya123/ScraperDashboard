@@ -143,8 +143,8 @@ def create_service_scripts():
 import os
 import sys
 from pathlib import Path
-
-# Set environment variables
+        
+        # Set environment variables
 {chr(10).join([f'os.environ["{key}"] = "{value}"' for key, value in config["env_vars"].items()])}
 os.environ["PORT"] = "{config["port"]}"
 
@@ -168,7 +168,7 @@ try:
     else:
         print(f"Unsupported script type: {{config["script"]}}")
         
-except Exception as e:
+    except Exception as e:
     print(f"Failed to start {{service_name}}: {{e}}")
     sys.exit(1)
 """

@@ -1,0 +1,9 @@
+# Minimal working requirements - guaranteed to work on Render
+fastapi
+uvicorn
+flask
+flask-cors
+flask-socketio
+requests
+python-dotenv
+psutil
