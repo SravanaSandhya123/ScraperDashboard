@@ -3,7 +3,7 @@ services:
   - type: web
     name: lavangam-backend
     env: python
-    buildCommand: pip install -r requirements-ultra-simple.txt
+    buildCommand: pip install -r requirements-complete.txt
     startCommand: python backend/render_scripts/start_main-backend.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -15,7 +15,7 @@ services:
   - type: web
     name: lavangam-backend-eproc
     env: python
-    buildCommand: pip install -r requirements-ultra-simple.txt
+    buildCommand: pip install -r requirements-complete.txt
     startCommand: python backend/render_scripts/start_eproc_server.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -29,7 +29,7 @@ services:
   - type: web
     name: lavangam-backend-system
     env: python
-    buildCommand: pip install -r requirements-ultra-simple.txt
+    buildCommand: pip install -r requirements-complete.txt
     startCommand: python backend/render_scripts/start_system_usage_api.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -43,7 +43,7 @@ services:
   - type: web
     name: lavangam-backend-dashboard
     env: python
-    buildCommand: pip install -r requirements-ultra-simple.txt
+    buildCommand: pip install -r requirements-complete.txt
     startCommand: python backend/render_scripts/start_dashboard_api.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -57,7 +57,7 @@ services:
   - type: web
     name: lavangam-backend-files
     env: python
-    buildCommand: pip install -r requirements-ultra-simple.txt
+    buildCommand: pip install -r requirements-complete.txt
     startCommand: python backend/render_scripts/start_file_manager.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -71,7 +71,7 @@ services:
   - type: web
     name: lavangam-backend-scraper
     env: python
-    buildCommand: pip install -r requirements-ultra-simple.txt
+    buildCommand: pip install -r requirements-complete.txt
     startCommand: python backend/render_scripts/start_scraper_ws.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -85,7 +85,7 @@ services:
   - type: web
     name: lavangam-backend-metrics
     env: python
-    buildCommand: pip install -r requirements-ultra-simple.txt
+    buildCommand: pip install -r requirements-complete.txt
     startCommand: python backend/render_scripts/start_admin_metrics_api.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -99,7 +99,7 @@ services:
   - type: web
     name: lavangam-backend-websocket
     env: python
-    buildCommand: pip install -r requirements-ultra-simple.txt
+    buildCommand: pip install -r requirements-complete.txt
     startCommand: python backend/render_scripts/start_dashboard_websocket.py
     envVars:
       - key: RENDER_ENVIRONMENT
