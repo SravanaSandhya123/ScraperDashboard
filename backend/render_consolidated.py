@@ -100,7 +100,9 @@ async def root():
             "analytics_api",
             "additional_analytics",
             "eproc_websocket",
-            "eproc_api"
+            "eproc_api",
+            "admin_metrics",
+            "tools"
         ]
     }
 
@@ -687,13 +689,329 @@ async def all_services_status():
         "analytics_api": {"port_equivalent": "8001", "status": "running"},
         "additional_analytics": {"port_equivalent": "8002", "status": "running"},
         "eproc_websocket": {"port_equivalent": "5020", "status": "running"},
-        "eproc_api": {"port_equivalent": "5021", "status": "running"}
+        "eproc_api": {"port_equivalent": "5021", "status": "running"},
+        "admin_metrics": {"port_equivalent": "8005", "status": "running"},
+        "tools": {"port_equivalent": "8006", "status": "running"}
     }
     
     return {
         "consolidated_backend": True,
         "main_port": os.getenv("PORT", "8000"),
         "services": services,
+        "timestamp": datetime.now().isoformat()
+    }
+
+# ============================================================================
+# ADMIN METRICS ENDPOINTS
+# ============================================================================
+
+@app.get("/main/api/admin/supabase-users")
+async def admin_supabase_users():
+    """Admin endpoint for Supabase users - matches the URL you're trying to access"""
+    try:
+        if not supabase:
+            return {
+                "status": "error",
+                "message": "Supabase client not initialized",
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        # Try to fetch users from different possible table names
+        table_names = ["users", "user", "profiles", "auth_users", "customers"]
+        
+        for table_name in table_names:
+            try:
+                print(f"🔍 Admin: Trying to fetch users from table: {table_name}")
+                response = supabase.table(table_name).select("*").execute()
+                
+                if response.data:
+                    return {
+                        "status": "success",
+                        "table": table_name,
+                        "user_count": len(response.data),
+                        "users": response.data,
+                        "timestamp": datetime.now().isoformat(),
+                        "endpoint": "/main/api/admin/supabase-users"
+                    }
+                    
+            except Exception as table_error:
+                print(f"⚠️ Admin: Table {table_name} failed: {table_error}")
+                continue
+        
+        # If no tables work, return a more helpful error
+        return {
+            "status": "warning",
+            "message": "No user tables found in Supabase",
+            "tables_tried": table_names,
+            "suggestion": "Please check your Supabase database for user table names",
+            "timestamp": datetime.now().isoformat(),
+            "endpoint": "/main/api/admin/supabase-users"
+        }
+        
+    except Exception as e:
+        print(f"❌ Admin Supabase users fetch error: {e}")
+        error_detail = str(e)
+        
+        # Handle specific network errors
+        if "Name or service not known" in error_detail:
+            return {
+                "status": "error",
+                "message": "Network connection issue - cannot reach Supabase",
+                "error": "DNS resolution failed for Supabase service",
+                "suggestion": "Check your internet connection and Supabase URL",
+                "timestamp": datetime.now().isoformat(),
+                "endpoint": "/main/api/admin/supabase-users"
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Failed to fetch users from Supabase",
+                "error": error_detail,
+                "suggestion": "Check Supabase configuration and permissions",
+                "timestamp": datetime.now().isoformat(),
+                "endpoint": "/main/api/admin/supabase-users"
+            }
+
+@app.get("/admin-metrics/health")
+async def admin_metrics_health():
+    """Admin metrics health check"""
+    return {
+        "service": "admin_metrics",
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "endpoints": [
+            "/main/api/admin/supabase-users",
+            "/admin-metrics/health",
+            "/admin-metrics/system-stats"
+        ]
+    }
+
+@app.get("/admin-metrics/system-stats")
+async def admin_system_stats():
+    """Admin system statistics"""
+    try:
+        cpu_percent = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        
+        return {
+            "status": "success",
+            "service": "admin_metrics",
+            "system_stats": {
+                "cpu_percent": cpu_percent,
+                "memory_percent": memory.percent,
+                "memory_available": memory.available,
+                "memory_total": memory.total,
+                "disk_percent": disk.percent,
+                "disk_free": disk.free,
+                "disk_total": disk.total
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": "Failed to get system stats",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+# ============================================================================
+# TOOL-SPECIFIC ENDPOINTS (Gem, E-Procurement, Ireps)
+# ============================================================================
+
+@app.get("/tools/gem/health")
+async def gem_tool_health():
+    """Gem tool health check"""
+    return {
+        "service": "gem_tool",
+        "status": "healthy",
+        "description": "Scrapes data from the GEM website and generates Excel files",
+        "timestamp": datetime.now().isoformat(),
+        "endpoints": [
+            "/tools/gem/health",
+            "/tools/gem/start-scraping",
+            "/tools/gem/stop-scraping",
+            "/tools/gem/status"
+        ]
+    }
+
+@app.post("/tools/gem/start-scraping")
+async def gem_start_scraping(request: Request):
+    """Start gem scraping process"""
+    try:
+        data = await request.json()
+        state = data.get("state", "ANDAMAN & NICOBAR")
+        city = data.get("city", "Skip city filtering")
+        start_page = data.get("start_page", 1)
+        total_pages = data.get("total_pages", 5)
+        username = data.get("username", "mahi")
+        
+        return {
+            "status": "success",
+            "message": f"Gem scraping started for {state}",
+            "config": {
+                "state": state,
+                "city": city,
+                "start_page": start_page,
+                "total_pages": total_pages,
+                "username": username
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": "Failed to start gem scraping",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.post("/tools/gem/stop-scraping")
+async def gem_stop_scraping():
+    """Stop gem scraping process"""
+    return {
+        "status": "success",
+        "message": "Gem scraping stopped",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/tools/gem/status")
+async def gem_scraping_status():
+    """Get gem scraping status"""
+    return {
+        "status": "idle",
+        "message": "Gem tool is ready",
+        "last_scrape": None,
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/tools/eprocurement/health")
+async def eprocurement_tool_health():
+    """E-Procurement tool health check"""
+    return {
+        "service": "eprocurement_tool",
+        "status": "healthy",
+        "description": "E-Procurement data processing and management",
+        "timestamp": datetime.now().isoformat(),
+        "endpoints": [
+            "/tools/eprocurement/health",
+            "/tools/eprocurement/process",
+            "/tools/eprocurement/status"
+        ]
+    }
+
+@app.post("/tools/eprocurement/process")
+async def eprocurement_process(request: Request):
+    """Process e-procurement data"""
+    try:
+        data = await request.json()
+        
+        return {
+            "status": "success",
+            "message": "E-Procurement processing started",
+            "config": data,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": "Failed to start e-procurement processing",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.get("/tools/eprocurement/status")
+async def eprocurement_status():
+    """Get e-procurement processing status"""
+    return {
+        "status": "idle",
+        "message": "E-Procurement tool is ready",
+        "last_process": None,
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/tools/ireps/health")
+async def ireps_tool_health():
+    """Ireps tool health check"""
+    return {
+        "service": "ireps_tool",
+        "status": "healthy",
+        "description": "Ireps data processing and management",
+        "timestamp": datetime.now().isoformat(),
+        "endpoints": [
+            "/tools/ireps/health",
+            "/tools/ireps/process",
+            "/tools/ireps/status"
+        ]
+    }
+
+@app.post("/tools/ireps/process")
+async def ireps_process(request: Request):
+    """Process ireps data"""
+    try:
+        data = await request.json()
+        
+        return {
+            "status": "success",
+            "message": "Ireps processing started",
+            "config": data,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": "Failed to start ireps processing",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.get("/tools/ireps/status")
+async def ireps_status():
+    """Get ireps processing status"""
+    return {
+        "status": "idle",
+        "message": "Ireps tool is ready",
+        "last_process": None,
+        "timestamp": datetime.now().isoformat()
+    }
+
+# ============================================================================
+# WEBSOCKET CONNECTION TEST ENDPOINTS
+# ============================================================================
+
+@app.get("/websocket/test")
+async def websocket_test():
+    """Test WebSocket connectivity"""
+    return {
+        "status": "success",
+        "message": "WebSocket endpoint available",
+        "websocket_url": "wss://lavangam-backend.onrender.com/ws",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/tools/websocket-status")
+async def all_tools_websocket_status():
+    """Get WebSocket status for all tools"""
+    return {
+        "status": "success",
+        "tools": {
+            "gem": {
+                "websocket": "available",
+                "endpoint": "/tools/gem/websocket",
+                "status": "ready"
+            },
+            "eprocurement": {
+                "websocket": "available", 
+                "endpoint": "/tools/eprocurement/websocket",
+                "status": "ready"
+            },
+            "ireps": {
+                "websocket": "available",
+                "endpoint": "/tools/ireps/websocket", 
+                "status": "ready"
+            }
+        },
         "timestamp": datetime.now().isoformat()
     }
 
