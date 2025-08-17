@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from dashboard_api import get_dashboard_metrics, get_db_connection
 import pymysql
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -94,6 +95,9 @@ async def websocket_handler(websocket, path):
 
 async def main():
     """Main function to start the WebSocket server"""
+    # Get port from environment variable
+    port = int(os.getenv("PORT", 8002))
+    
     # Start the periodic update task
     update_task = asyncio.create_task(periodic_update())
     
@@ -103,13 +107,13 @@ async def main():
     
     server = await websockets.serve(
         handler,
-        "localhost",
-        8002,
+        "0.0.0.0",  # Changed from localhost to 0.0.0.0 for Render
+        port,
         ping_interval=20,
         ping_timeout=10
     )
     
-    logger.info("Dashboard WebSocket server started on ws://localhost:8002")
+    logger.info(f"Dashboard WebSocket server started on ws://0.0.0.0:{port}")
     
     try:
         await asyncio.gather(server.wait_closed(), update_task)

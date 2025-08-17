@@ -3,7 +3,7 @@ services:
   - type: web
     name: lavangam-backend
     env: python
-    buildCommand: pip install -r requirements-minimal-working.txt
+    buildCommand: pip install -r requirements-render.txt
     startCommand: python backend/render_scripts/start_main-backend.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -15,9 +15,9 @@ services:
 
   # Service 1 - Port 8001
   - type: web
-    name: lavangam-backend-8001
+    name: lavangam-backend-eproc
     env: python
-    buildCommand: pip install -r requirements-minimal-working.txt
+    buildCommand: pip install -r requirements-render.txt
     startCommand: python backend/render_scripts/start_eproc_server.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -29,9 +29,9 @@ services:
 
   # Service 2 - Port 8002
   - type: web
-    name: lavangam-backend-8002
+    name: lavangam-backend-system
     env: python
-    buildCommand: pip install -r requirements-minimal-working.txt
+    buildCommand: pip install -r requirements-render.txt
     startCommand: python backend/render_scripts/start_system_usage_api.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -41,11 +41,25 @@ services:
       - key: PORT
         value: 8002
 
-  # Service 3 - Port 8004
+  # Service 3 - Port 8003 (MISSING PORT ADDED)
   - type: web
-    name: lavangam-backend-8004
+    name: lavangam-backend-8003
     env: python
-    buildCommand: pip install -r requirements-minimal-working.txt
+    buildCommand: pip install -r requirements-render.txt
+    startCommand: python backend/render_scripts/start_8003_service.py
+    envVars:
+      - key: RENDER_ENVIRONMENT
+        value: production
+      - key: DB_HOST
+        value: 44.244.61.85
+      - key: PORT
+        value: 8003
+
+  # Service 4 - Port 8004
+  - type: web
+    name: lavangam-backend-dashboard
+    env: python
+    buildCommand: pip install -r requirements-render.txt
     startCommand: python backend/render_scripts/start_dashboard_api.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -55,39 +69,11 @@ services:
       - key: PORT
         value: 8004
 
-  # Service 4 - Port 5024
+  # Service 5 - Port 5002
   - type: web
-    name: lavangam-backend-5024
+    name: lavangam-backend-metrics
     env: python
-    buildCommand: pip install -r requirements-minimal-working.txt
-    startCommand: python backend/render_scripts/start_file_manager.py
-    envVars:
-      - key: RENDER_ENVIRONMENT
-        value: production
-      - key: DB_HOST
-        value: 44.244.61.85
-      - key: PORT
-        value: 5024
-
-  # Service 5 - Port 5003
-  - type: web
-    name: lavangam-backend-5003
-    env: python
-    buildCommand: pip install -r requirements-minimal-working.txt
-    startCommand: python backend/render_scripts/start_scraper_ws.py
-    envVars:
-      - key: RENDER_ENVIRONMENT
-        value: production
-      - key: DB_HOST
-        value: 44.244.61.85
-      - key: PORT
-        value: 5003
-
-  # Service 6 - Port 5002
-  - type: web
-    name: lavangam-backend-5002
-    env: python
-    buildCommand: pip install -r requirements-minimal-working.txt
+    buildCommand: pip install -r requirements-render.txt
     startCommand: python backend/render_scripts/start_admin_metrics_api.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -97,11 +83,39 @@ services:
       - key: PORT
         value: 5002
 
-  # Service 7 - Port 5022
+  # Service 6 - Port 5003
   - type: web
-    name: lavangam-backend-5022
+    name: lavangam-backend-scraper
     env: python
-    buildCommand: pip install -r requirements-minimal-working.txt
+    buildCommand: pip install -r requirements-render.txt
+    startCommand: python backend/render_scripts/start_scraper_ws.py
+    envVars:
+      - key: RENDER_ENVIRONMENT
+        value: production
+      - key: DB_HOST
+        value: 44.244.61.85
+      - key: PORT
+        value: 5003
+
+  # Service 7 - Port 5021
+  - type: web
+    name: lavangam-backend-5021
+    env: python
+    buildCommand: pip install -r requirements-render.txt
+    startCommand: python backend/render_scripts/start_system_usage_api.py
+    envVars:
+      - key: RENDER_ENVIRONMENT
+        value: production
+      - key: DB_HOST
+        value: 44.244.61.85
+      - key: PORT
+        value: 5021
+
+  # Service 8 - Port 5022
+  - type: web
+    name: lavangam-backend-websocket
+    env: python
+    buildCommand: pip install -r requirements-render.txt
     startCommand: python backend/render_scripts/start_dashboard_websocket.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -111,11 +125,11 @@ services:
       - key: PORT
         value: 5022
 
-  # Service 8 - Port 5023
+  # Service 9 - Port 5023
   - type: web
     name: lavangam-backend-5023
     env: python
-    buildCommand: pip install -r requirements-minimal-working.txt
+    buildCommand: pip install -r requirements-render.txt
     startCommand: python backend/render_scripts/start_eproc_server.py
     envVars:
       - key: RENDER_ENVIRONMENT
@@ -125,16 +139,16 @@ services:
       - key: PORT
         value: 5023
 
-  # Service 9 - Port 5021
+  # Service 10 - Port 5024
   - type: web
-    name: lavangam-backend-5021
+    name: lavangam-backend-files
     env: python
-    buildCommand: pip install -r requirements-minimal-working.txt
-    startCommand: python backend/render_scripts/start_system_usage_api.py
+    buildCommand: pip install -r requirements-render.txt
+    startCommand: python backend/render_scripts/start_file_manager.py
     envVars:
       - key: RENDER_ENVIRONMENT
         value: production
       - key: DB_HOST
         value: 44.244.61.85
       - key: PORT
-        value: 5021
+        value: 5024
