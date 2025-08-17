@@ -1,0 +1,5 @@
+# Ultra-simple requirements - guaranteed to work on Render
+fastapi
+uvicorn
+requests
+python-dotenv

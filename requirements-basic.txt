@@ -1,0 +1,8 @@
+# Basic requirements - minimal packages that work on Render
+fastapi
+uvicorn
+requests
+python-dotenv
+flask
+flask-cors
+psutil
