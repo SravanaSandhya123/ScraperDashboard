@@ -43,7 +43,7 @@ setuptools==69.0.3
 flask==3.0.0
 flask-cors==4.0.0
 flask-socketio==5.3.6
-eventlet==0.33.3
+eventlet==0.33.3  # Required for flask-socketio production deployment
 
 # Note: Updated to Python 3.11 compatible versions
 # pandas 2.1.4 and numpy 1.26.2 work with Python 3.11

@@ -7,7 +7,6 @@ from pathlib import Path
 # Set environment variables
 os.environ["RENDER_ENVIRONMENT"] = "production"
 os.environ["DB_HOST"] = "44.244.61.85"
-os.environ["PORT"] = "5028"
 
 # Add backend directory to path
 backend_path = Path(__file__).parent.parent
@@ -18,7 +17,7 @@ try:
     import uvicorn
     from scraper_ws import app
     
-    port = int(os.getenv("PORT", 5028))
+    port = int(os.getenv("PORT", 5003))
     print(f"Starting scraper_ws on port {port}...")
     uvicorn.run(app, host="0.0.0.0", port=port)
     

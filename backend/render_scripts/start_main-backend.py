@@ -7,7 +7,6 @@ from pathlib import Path
 # Set environment variables
 os.environ["RENDER_ENVIRONMENT"] = "production"
 os.environ["DB_HOST"] = "44.244.61.85"
-os.environ["PORT"] = "8000"
 
 # Add current directory to path
 sys.path.insert(0, str(Path(__file__).parent))
