@@ -424,6 +424,123 @@ async def test_database():
         }
 
 # ============================================================================
+# SUPABASE TEST ENDPOINTS
+# ============================================================================
+
+@app.get("/test-supabase")
+async def test_supabase():
+    """Test Supabase connectivity and user fetching"""
+    try:
+        if not supabase:
+            return {
+                "status": "error",
+                "message": "Supabase client not initialized",
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        # Test basic connection
+        print("🔍 Testing Supabase connection...")
+        
+        # Try to fetch users (adjust table name as needed)
+        try:
+            # Test 1: Basic table access
+            print("🔍 Testing user table access...")
+            response = supabase.table("users").select("*").limit(1).execute()
+            
+            user_count = len(response.data) if response.data else 0
+            
+            return {
+                "status": "success",
+                "message": "Supabase connection and user fetch successful",
+                "user_count": user_count,
+                "sample_data": response.data[:2] if response.data else [],  # Show first 2 users
+                "timestamp": datetime.now().isoformat(),
+                "supabase_url": supabase_url
+            }
+            
+        except Exception as table_error:
+            print(f"⚠️ Table access error: {table_error}")
+            
+            # Try alternative table names
+            alternative_tables = ["user", "profiles", "auth_users", "customers"]
+            
+            for table_name in alternative_tables:
+                try:
+                    print(f"🔍 Trying alternative table: {table_name}")
+                    response = supabase.table(table_name).select("*").limit(1).execute()
+                    
+                    user_count = len(response.data) if response.data else 0
+                    
+                    return {
+                        "status": "success",
+                        "message": f"Supabase connection successful with table '{table_name}'",
+                        "table_found": table_name,
+                        "user_count": user_count,
+                        "sample_data": response.data[:2] if response.data else [],
+                        "timestamp": datetime.now().isoformat(),
+                        "supabase_url": supabase_url
+                    }
+                    
+                except Exception as alt_error:
+                    print(f"⚠️ Table {table_name} failed: {alt_error}")
+                    continue
+            
+            # If no tables work, return connection success but no data
+            return {
+                "status": "warning",
+                "message": "Supabase connected but no user tables found",
+                "tables_tried": alternative_tables,
+                "error": str(table_error),
+                "timestamp": datetime.now().isoformat(),
+                "supabase_url": supabase_url
+            }
+            
+    except Exception as e:
+        print(f"❌ Supabase test error: {e}")
+        return {
+            "status": "error",
+            "message": "Supabase test failed",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+            "supabase_url": supabase_url
+        }
+
+@app.get("/supabase-users")
+async def get_supabase_users():
+    """Get users from Supabase"""
+    try:
+        if not supabase:
+            raise HTTPException(status_code=500, detail="Supabase client not initialized")
+        
+        # Try to fetch users from different possible table names
+        table_names = ["users", "user", "profiles", "auth_users", "customers"]
+        
+        for table_name in table_names:
+            try:
+                print(f"🔍 Trying to fetch users from table: {table_name}")
+                response = supabase.table(table_name).select("*").execute()
+                
+                if response.data:
+                    return {
+                        "status": "success",
+                        "table": table_name,
+                        "user_count": len(response.data),
+                        "users": response.data,
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    
+            except Exception as table_error:
+                print(f"⚠️ Table {table_name} failed: {table_error}")
+                continue
+        
+        # If no tables work
+        raise HTTPException(status_code=404, detail="No user tables found")
+        
+    except Exception as e:
+        print(f"❌ Supabase users fetch error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch users: {str(e)}")
+
+# ============================================================================
 # AI ASSISTANT ENDPOINT
 # ============================================================================
 
