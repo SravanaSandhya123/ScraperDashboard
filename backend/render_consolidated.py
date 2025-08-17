@@ -5,1176 +5,449 @@ Consolidated Lavangam Backend for Render Deployment
 Combines all services under one FastAPI app with route prefixes
 """
 
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from selenium import webdriver
+from selenium.webdriver.edge.service import Service
+from selenium.webdriver.edge.options import Options
 import os
-import sys
-import asyncio
-import threading
-import time
-from pathlib import Path
-from typing import Dict, Any, Optional
-
-print("🚀 Starting Lavangam Consolidated Backend...")
-
-# Add the backend directory to Python path
-backend_path = Path(__file__).parent
-sys.path.insert(0, str(backend_path))
-print(f"✅ Backend path added: {backend_path}")
-
-# Check Python version
-python_version = sys.version_info
-print(f"🐍 Python version: {python_version.major}.{python_version.minor}.{python_version.micro}")
-
-print("📦 Importing packages...")
-
-try:
-    from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
-    from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import JSONResponse, HTMLResponse
-    import uvicorn
-    from supabase import create_client, Client
-    import requests
-    import json
-    from datetime import datetime
-    import mysql.connector
-    from mysql.connector import Error
-    import pandas as pd
-    import psutil
-    from dotenv import load_dotenv
-    print("✅ All packages imported successfully")
-except ImportError as e:
-    print(f"❌ Import error: {e}")
-    sys.exit(1)
-
-print("🔧 Loading environment variables...")
+import requests
+import datetime
+from dotenv import load_dotenv
 load_dotenv()
 
-# Initialize FastAPI app
-app = FastAPI(
-    title="Lavangam Consolidated Backend",
-    description="All services consolidated into one API",
-    version="2.0.0"
-)
+# Import database configuration
+try:
+    from backend.database_config import DATABASE_URL, test_database_connection
+    print(f"Database URL: {DATABASE_URL}")
+    # Test database connection on startup
+    test_database_connection()
+except ImportError as e:
+    print(f"Warning: Could not import database configuration: {e}")
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-print("✅ FastAPI app initialized with CORS")
-
-# Initialize Supabase client
-supabase_url = os.getenv("SUPABASE_URL", "https://zjfjaezztfydiryzfd.supabase.co")
-supabase_key = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqZmphZXp6dGZ5ZGlyeXpzeXZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTAyNzAyMSwiZXhwIjoyMDY2NjAzMDIxfQ.sRbGz6wbBoMmY8Ol3vEPc4VOh2oEWpcONi9DkUsTpKk")
+# Ensure these imports point to actual router objects
+import sys
+import os
+# Add the current directory to Python path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    supabase: Client = create_client(supabase_url, supabase_key)
-    print("✅ Supabase client initialized")
-except Exception as e:
-    print(f"⚠️ Supabase initialization warning: {e}")
-    supabase = None
+    from backend.router import tool_runner, tools
+except ImportError as e:
+    try:
+        from router import tool_runner, tools
+    except ImportError as e2:
+        # Fallback if router imports fail
+        tool_runner = None
+        tools = None
+        print("Warning: Could not import router modules")
+
+try:
+    import gem_api, eproc_api, admin_metrics_api, analytics_api
+except ImportError:
+    # Fallback if API imports fail
+    gem_api = None
+    eproc_api = None
+    admin_metrics_api = None
+    analytics_api = None
+    print("Warning: Could not import API modules")
+from supabase import create_client, Client
+
+supabase_url = "https://zjfjaezztfydiryzsyvd.supabase.co"
+supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqZmphZXp6dGZ5ZGlyeXpzeXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEwMjcwMjEsImV4cCI6MjA2NjYwMzAyMX0.6ZVMwXK4aMGmR68GTYo0yt_L7bOg5QWtElTaa8heQos"
+supabase: Client = create_client(supabase_url, supabase_key)
+
+app = FastAPI()
+
+# Configure CORS correctly
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",  # Frontend origin (like Vite or React dev server)
+        "http://localhost:3000",  # Alternative frontend port
+        "https://lavangam-app-us-west-2.s3-website-us-west-2.amazonaws.com",  # Your S3 frontend
+        "https://*.elasticbeanstalk.com",  # AWS Elastic Beanstalk
+        "https://*.amazonaws.com",  # AWS domains
+        "*"  # Allow all origins for now - you can restrict this later
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],                      # Allow all methods: GET, POST, PUT, etc.
+    allow_headers=["*"],                      # Allow all headers
+)
+
+# Include your routers
+if tool_runner:
+    app.include_router(tool_runner.router)
+if tools:
+    app.include_router(tools.router)
+if gem_api:
+    app.mount("/gem", gem_api.app)
+if eproc_api:
+    app.mount("/eproc", eproc_api.app)
+if admin_metrics_api:
+    app.mount("/admin", admin_metrics_api.app)
+if analytics_api:
+    app.mount("/analytics", analytics_api.app)
+
+@app.post('/api/open-edge')
+async def open_edge(request: Request):
+    data = await request.json()
+    url = data.get('url')
+    if not url:
+        return JSONResponse({'error': 'No URL provided'}, status_code=400)
+    try:
+        # Try to use the existing WebDriver first
+        DRIVER_PATH = os.path.abspath('scrapers/edgedriver_win64/msedgedriver.exe')
+        options = Options()
+        options.add_experimental_option("detach", True)  # Keeps the browser open after script ends
+        options.add_argument("--ignore-certificate-errors")
+        options.add_argument("--ignore-ssl-errors")
+        options.add_argument("--ignore-certificate-errors-spki-list")
+        
+        try:
+            service = Service(executable_path=DRIVER_PATH)
+            driver = webdriver.Edge(service=service, options=options)
+        except Exception as driver_error:
+            # If WebDriver fails, try using the system's default Edge installation
+            print(f"WebDriver error: {driver_error}")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+            driver = webdriver.Edge(options=options)
+        
+        driver.get(url)
+        return JSONResponse({'status': 'success'}, status_code=200)
+    except Exception as e:
+        return JSONResponse({'error': str(e)}, status_code=500)
+
+@app.post("/api/ai-assistant")
+async def ai_assistant(request: Request):
+    data = await request.json()
+    user_message = data.get("message")
+    api_key = os.getenv("GROQ_API_KEY")
+    print("API Key:", api_key)  # Debug
+    print("User message:", user_message)  # Debug
+    if not api_key:
+        print("GROQ_API_KEY not set!")  # Debug
+        return JSONResponse({"error": "GROQ_API_KEY not set in environment."}, status_code=500)
+    try:
+        response = requests.post(
+            "https://api.groq.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llama3-70b-8192",
+                "messages": [{"role": "user", "content": user_message}]
+            }
+        )
+        print("Groq response status:", response.status_code)  # Debug
+        print("Groq response body:", response.text)  # Debug
+        result = response.json()
+        return {"response": result["choices"][0]["message"]["content"]}
+    except Exception as e:
+        print("Exception:", str(e))  # Debug
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/api/dashboard-overview")
+def dashboard_overview():
+    # Example queries - replace with your actual table/column names
+    # Active jobs: count where status = 'running'
+    active_jobs = supabase.table("jobs").select("id").eq("status", "running").execute().data
+    # Completed today: count where status = 'completed' and today
+    completed_today = supabase.table("jobs").select("id").eq("status", "completed").gte("completed_at", "2024-07-25").execute().data
+    # Total downloads: count from downloads table
+    total_downloads = supabase.table("downloads").select("id").execute().data
+    # Success rate: percent of jobs with status = 'completed'
+    total_jobs = supabase.table("jobs").select("id").execute().data
+    success_rate = (len([j for j in total_jobs if j.get('status') == 'completed']) / len(total_jobs) * 100) if total_jobs else 0
+
+    # Weekly activity: mock data for now
+    weekly_activity = [
+        {"day": "Mon", "value": 12},
+        {"day": "Tue", "value": 18},
+        {"day": "Wed", "value": 6},
+        {"day": "Thu", "value": 12},
+        {"day": "Fri", "value": 18},
+        {"day": "Sat", "value": 14},
+        {"day": "Sun", "value": 10}
+    ]
+    # Recent activity: last 4 jobs
+    recent_activity = supabase.table("jobs").select("status,message,details,created_at").order("created_at", desc=True).limit(4).execute().data
+    # System status: mock data for now
+    system_status = {
+        "apiServer": {"status": "Online", "uptime": 99.9},
+        "database": {"status": "Online", "uptime": 99.8},
+        "queueSystem": {"status": "Online", "uptime": 99.7}
+    }
+    return JSONResponse({
+        "summary": {
+            "activeJobs": len(active_jobs),
+            "completedToday": len(completed_today),
+            "totalDownloads": len(total_downloads),
+            "successRate": round(success_rate, 2),
+            "activeJobsDelta": 2,  # Placeholder
+            "completedTodayDelta": 18,  # Placeholder
+            "totalDownloadsDelta": 5.2,  # Placeholder
+            "successRateDelta": 2.1  # Placeholder
+        },
+        "weeklyActivity": weekly_activity,
+        "recentActivity": recent_activity,
+        "systemStatus": system_status
+    })
+
+@app.get("/main/api/admin/supabase-users")
+async def get_supabase_users_main():
+    # Use the service role key directly (for admin access)
+    service_role_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqZmphZXp6dGZ5ZGlyeXpzeXZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTAyNzAyMSwiZXhwIjoyMDY2NjAzMDIxfQ.sRbGz6wbBoMmY8Ol3vEPc4VOh2oEWpcONi9DkUsTpKk"
+    supabase_url = "https://zjfjaezztfydiryzsyvd.supabase.co"
+    try:
+        # Create Supabase client with service role key
+        from supabase import create_client
+        supabase_admin = create_client(supabase_url, service_role_key)
+        # Fetch users from Supabase Auth
+        response = supabase_admin.auth.admin.list_users()
+        if hasattr(response, 'user') and response.user:
+            users = response.user
+        else:
+            # Fallback: try direct API call
+            import requests
+            url = f"{supabase_url}/auth/v1/admin/users"
+            headers = {
+                "apikey": service_role_key,
+                "Authorization": f"Bearer {service_role_key}",
+            }
+            api_response = requests.get(url, headers=headers)
+            if api_response.status_code != 200:
+                print(f"Supabase API error: {api_response.status_code} - {api_response.text}")
+                # Return mock data instead of error
+                return {
+                    "users": [
+                        {
+                            "id": "mock-user-1",
+                            "email": "admin@example.com",
+                            "created_at": "2024-01-01T00:00:00Z",
+                            "last_sign_in_at": "2024-07-31T12:00:00Z",
+                            "role": "admin",
+                            "is_active": True,
+                        },
+                        {
+                            "id": "mock-user-2",
+                            "email": "user@example.com",
+                            "created_at": "2024-01-15T00:00:00Z",
+                            "last_sign_in_at": "2024-07-30T10:30:00Z",
+                            "role": "user",
+                            "is_active": True,
+                        }
+                    ]
+                }
+            users = api_response.json().get("users", [])
+        # Format user data
+        user_list = [
+            {
+                "id": user.get("id"),
+                "email": user.get("email"),
+                "created_at": user.get("created_at"),
+                "last_sign_in_at": user.get("last_sign_in_at"),
+                "role": user.get("role", "user"),
+                "is_active": user.get("email_confirmed_at") is not None,
+            }
+            for user in users
+        ]
+        return {"users": user_list}
+    except Exception as e:
+        print(f"Error fetching Supabase users: {str(e)}")
+        # Return mock data instead of error
+        return {
+            "users": [
+                {
+                    "id": "mock-user-1",
+                    "email": "admin@example.com",
+                    "created_at": "2024-01-01T00:00:00Z",
+                    "last_sign_in_at": "2024-07-31T12:00:00Z",
+                    "role": "admin",
+                    "is_active": True,
+                },
+                {
+                    "id": "mock-user-2",
+                    "email": "user@example.com",
+                    "created_at": "2024-01-15T00:00:00Z",
+                    "last_sign_in_at": "2024-07-30T10:30:00Z",
+                    "role": "user",
+                    "is_active": True,
+                },
+                {
+                    "id": "mock-user-3",
+                    "email": "test@example.com",
+                    "created_at": "2024-02-01T00:00:00Z",
+                    "last_sign_in_at": "2024-07-29T15:45:00Z",
+                    "role": "user",
+                    "is_active": False,
+                }
+            ]
+        }
+
+# Export endpoints
+@app.get("/api/export-data")
+async def export_user_data(request: Request):
+    """Export all user data as JSON"""
+    try:
+        # Get user ID from request (you might need to implement proper auth)
+        # For now, we'll export all data
+        user_id = "all"  # This should come from authentication
+        
+        # Get user profile data from Supabase
+        try:
+            users_response = supabase.table("users").select("*").execute()
+            users_data = users_response.data if users_response.data else []
+        except Exception as e:
+            print(f"Supabase users error: {e}")
+            users_data = []
+        
+        # Get scraping jobs from Supabase
+        try:
+            jobs_response = supabase.table("jobs").select("*").execute()
+            jobs_data = jobs_response.data if jobs_response.data else []
+        except Exception as e:
+            print(f"Supabase jobs error: {e}")
+            jobs_data = []
+        
+        # Get available output files information
+        output_dirs = ['gem', 'ireps', 'eproc', 'ap']
+        available_files = []
+        
+        for dir_name in output_dirs:
+            output_path = f"outputs/{dir_name}"
+            if os.path.exists(output_path):
+                try:
+                    files = os.listdir(output_path)
+                    for file in files:
+                        file_path = os.path.join(output_path, file)
+                        if os.path.isdir(file_path):
+                            sub_files = os.listdir(file_path)
+                            available_files.append({
+                                "tool": dir_name.upper(),
+                                "sessionId": file,
+                                "files": [f for f in sub_files if f.endswith(('.xlsx', '.csv'))],
+                                "path": f"outputs/{dir_name}/{file}"
+                            })
+                except Exception as e:
+                    print(f"Error reading directory {output_path}: {e}")
+        
+        # Prepare export data
+        export_data = {
+            "exportDate": str(datetime.datetime.now()),
+            "user": users_data[0] if users_data else None,
+            "scrapingJobs": jobs_data,
+            "availableFiles": available_files,
+            "summary": {
+                "totalJobs": len(jobs_data),
+                "completedJobs": len([j for j in jobs_data if j.get('status') == 'completed']),
+                "failedJobs": len([j for j in jobs_data if j.get('status') == 'failed']),
+                "runningJobs": len([j for j in jobs_data if j.get('status') == 'running']),
+                "totalOutputFiles": sum(len(dir_info['files']) for dir_info in available_files),
+                "availableSessions": len(available_files)
+            }
+        }
+        
+        return JSONResponse(export_data)
+        
+    except Exception as e:
+        print(f"Export data error: {str(e)}")
+        return JSONResponse({"error": "Failed to export data"}, status_code=500)
+
+@app.get("/api/export-files")
+async def export_output_files(request: Request):
+    """Export all output files as ZIP"""
+    try:
+        import zipfile
+        import io
+        
+        # Create a ZIP file in memory
+        zip_buffer = io.BytesIO()
+        
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            # Add output directories to the zip
+            output_dirs = ['gem', 'ireps', 'eproc', 'ap']
+            has_files = False
+            
+            for dir_name in output_dirs:
+                output_path = f"outputs/{dir_name}"
+                if os.path.exists(output_path):
+                    try:
+                        files = os.listdir(output_path)
+                        if files:
+                            # Add the entire directory to the zip
+                            for root, dirs, files in os.walk(output_path):
+                                for file in files:
+                                    file_path = os.path.join(root, file)
+                                    arc_name = os.path.relpath(file_path, "outputs")
+                                    zip_file.write(file_path, arc_name)
+                                    has_files = True
+                    except Exception as e:
+                        print(f"Error adding directory {output_path} to zip: {e}")
+            
+            if not has_files:
+                # If no files found, create an empty zip with a readme
+                zip_file.writestr("README.txt", "No output files found at the time of export.")
+        
+        # Prepare response
+        zip_buffer.seek(0)
+        
+        from fastapi.responses import StreamingResponse
+        return StreamingResponse(
+            io.BytesIO(zip_buffer.getvalue()),
+            media_type="application/zip",
+            headers={"Content-Disposition": f"attachment; filename=output_files_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"}
+        )
+        
+    except Exception as e:
+        print(f"Export files error: {str(e)}")
+        return JSONResponse({"error": "Failed to export files"}, status_code=500)
 
 # ============================================================================
-# MAIN BACKEND ROUTES (Port 8000 equivalent)
+# HEALTH CHECK ENDPOINTS FOR RENDER
 # ============================================================================
 
 @app.get("/")
 async def root():
     """Root endpoint with service information"""
     return {
-        "message": "Welcome to Lavangam Consolidated Backend",
+        "message": "Welcome to Lavangam Backend (Original Code)",
         "service": "lavangam-backend",
-        "version": "2.0.0",
+        "version": "1.0.0",
         "status": "running",
-        "timestamp": datetime.now().isoformat(),
-        "services": [
-            "main_backend",
-            "file_manager", 
-            "eproc_server",
-            "system_usage",
-            "dashboard_api",
-            "scrapers_api",
-            "analytics_api",
-            "additional_analytics",
-            "eproc_websocket",
-            "eproc_api",
-            "admin_metrics",
-            "tools"
+        "timestamp": datetime.datetime.now().isoformat(),
+        "endpoints": [
+            "/main/api/admin/supabase-users",
+            "/api/dashboard-overview",
+            "/api/export-data",
+            "/api/export-files",
+            "/api/ai-assistant"
         ]
     }
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint for Render monitoring"""
-    try:
-        health_status = {
-            "status": "healthy",
-            "timestamp": datetime.now().isoformat(),
-            "service": "lavangam-consolidated-backend",
-            "environment": os.getenv("RENDER_ENVIRONMENT", "production"),
-            "python_version": f"{python_version.major}.{python_version.minor}.{python_version.micro}",
-            "port": os.getenv("PORT", "8000"),
-            "host": "0.0.0.0",
-            "uptime": "running",
-            "consolidated_services": True
-        }
-        
-        # Test database connection
-        try:
-            db_host = os.getenv("DB_HOST", "44.244.61.85")
-            if db_host:
-                health_status["database"] = "configured"
-            else:
-                health_status["database"] = "not_configured"
-        except:
-            health_status["database"] = "error"
-        
-        return health_status
-    except Exception as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
+    return {
+        "status": "healthy",
+        "timestamp": datetime.datetime.now().isoformat(),
+        "service": "lavangam-backend",
+        "environment": os.getenv("RENDER_ENVIRONMENT", "production")
+    }
 
 @app.get("/ping")
 async def ping():
     """Simple ping endpoint"""
     return {"message": "pong", "status": "ok"}
 
-# ============================================================================
-# FILE MANAGER ROUTES (Port 5002 equivalent)
-# ============================================================================
-
-@app.get("/file-manager/")
-async def file_manager_root():
-    """File Manager service root"""
-    return {
-        "service": "file_manager",
-        "status": "running",
-        "port_equivalent": "5002",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/file-manager/health")
-async def file_manager_health():
-    """File Manager health check"""
-    return {
-        "service": "file_manager",
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat()
-    }
-
-# ============================================================================
-# E-PROCUREMENT SERVER ROUTES (Port 5023 equivalent)
-# ============================================================================
-
-@app.get("/eproc/")
-async def eproc_root():
-    """E-Procurement service root"""
-    return {
-        "service": "eproc_server",
-        "status": "running",
-        "port_equivalent": "5023",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/eproc/health")
-async def eproc_health():
-    """E-Procurement health check"""
-    return {
-        "service": "eproc_server",
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat()
-    }
-
-# ============================================================================
-# SYSTEM USAGE ROUTES (Port 5024 equivalent)
-# ============================================================================
-
-@app.get("/system/")
-async def system_root():
-    """System Usage service root"""
-    return {
-        "service": "system_usage",
-        "status": "running",
-        "port_equivalent": "5024",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/system/health")
-async def system_health():
-    """System Usage health check"""
-    return {
-        "service": "system_usage",
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/system/metrics")
-async def system_metrics():
-    """System metrics endpoint"""
-    try:
-        cpu_percent = psutil.cpu_percent(interval=1)
-        memory = psutil.virtual_memory()
-        disk = psutil.disk_usage('/')
-        
-        return {
-            "cpu_percent": cpu_percent,
-            "memory_percent": memory.percent,
-            "memory_available": memory.available,
-            "memory_total": memory.total,
-            "disk_percent": disk.percent,
-            "disk_free": disk.free,
-            "disk_total": disk.total,
-            "timestamp": datetime.now().isoformat()
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"System metrics error: {str(e)}")
-
-# ============================================================================
-# DASHBOARD API ROUTES (Port 8004 equivalent)
-# ============================================================================
-
-@app.get("/dashboard/")
-async def dashboard_root():
-    """Dashboard API service root"""
-    return {
-        "service": "dashboard_api",
-        "status": "running",
-        "port_equivalent": "8004",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/dashboard/health")
-async def dashboard_health():
-    """Dashboard API health check"""
-    return {
-        "service": "dashboard_api",
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat()
-    }
-
-# ============================================================================
-# SCRAPERS API ROUTES (Port 5022 equivalent)
-# ============================================================================
-
-@app.get("/scrapers/")
-async def scrapers_root():
-    """Scrapers API service root"""
-    return {
-        "service": "scrapers_api",
-        "status": "running",
-        "port_equivalent": "5022",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/scrapers/health")
-async def scrapers_health():
-    """Scrapers API health check"""
-    return {
-        "service": "scrapers_api",
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat()
-    }
-
-# ============================================================================
-# ANALYTICS API ROUTES (Port 8001 equivalent)
-# ============================================================================
-
-@app.get("/analytics/")
-async def analytics_root():
-    """Analytics API service root"""
-    return {
-        "service": "analytics_api",
-        "status": "running",
-        "port_equivalent": "8001",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/analytics/health")
-async def analytics_health():
-    """Analytics API health check"""
-    return {
-        "service": "analytics_api",
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat()
-    }
-
-# ============================================================================
-# ADDITIONAL ANALYTICS ROUTES (Port 8002 equivalent)
-# ============================================================================
-
-@app.get("/analytics-additional/")
-async def additional_analytics_root():
-    """Additional Analytics API service root"""
-    return {
-        "service": "additional_analytics",
-        "status": "running",
-        "port_equivalent": "8002",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/analytics-additional/health")
-async def additional_analytics_health():
-    """Additional Analytics API health check"""
-    return {
-        "service": "additional_analytics",
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat()
-    }
-
-# ============================================================================
-# E-PROCUREMENT WEBSOCKET ROUTES (Port 5020 equivalent)
-# ============================================================================
-
-@app.get("/eproc-ws/")
-async def eproc_websocket_root():
-    """E-Procurement WebSocket service root"""
-    return {
-        "service": "eproc_websocket",
-        "status": "running",
-        "port_equivalent": "5020",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/eproc-ws/health")
-async def eproc_websocket_health():
-    """E-Procurement WebSocket health check"""
-    return {
-        "service": "eproc_websocket",
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat()
-    }
-
-# ============================================================================
-# E-PROCUREMENT API ROUTES (Port 5021 equivalent)
-# ============================================================================
-
-@app.get("/eproc-api/")
-async def eproc_api_root():
-    """E-Procurement API service root"""
-    return {
-        "service": "eproc_api",
-        "status": "running",
-        "port_equivalent": "5021",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/eproc-api/health")
-async def eproc_api_health():
-    """E-Procurement API health check"""
-    return {
-        "service": "eproc_api",
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat()
-    }
-
-# ============================================================================
-# DATABASE TEST ENDPOINTS
-# ============================================================================
-
-@app.get("/test-database")
-async def test_database():
-    """Test database connectivity"""
-    try:
-        db_host = os.getenv("DB_HOST", "44.244.61.85")
-        db_port = int(os.getenv("DB_PORT", "3306"))
-        db_name = os.getenv("DB_NAME", "Toolinformation")
-        db_user = os.getenv("DB_USER", "root")
-        db_password = os.getenv("DB_PASSWORD", "thanuja")
-        
-        connection = mysql.connector.connect(
-            host=db_host,
-            port=db_port,
-            database=db_name,
-            user=db_user,
-            password=db_password,
-            connection_timeout=10,
-            autocommit=True
-        )
-        
-        if connection.is_connected():
-            cursor = connection.cursor()
-            cursor.execute("SELECT VERSION()")
-            version = cursor.fetchone()
-            cursor.close()
-            connection.close()
-            
-            return {
-                "status": "success",
-                "message": "Database connection successful",
-                "version": version[0] if version else "Unknown",
-                "timestamp": datetime.now().isoformat()
-            }
-    except Error as e:
-        return {
-            "status": "error",
-            "message": "Database connection failed",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": "Database test failed",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
-
-# ============================================================================
-# SUPABASE TEST ENDPOINTS
-# ============================================================================
-
-@app.get("/test-supabase")
-async def test_supabase():
-    """Test Supabase connectivity and user fetching"""
-    try:
-        if not supabase:
-            return {
-                "status": "error",
-                "message": "Supabase client not initialized",
-                "timestamp": datetime.now().isoformat()
-            }
-        
-        # Test basic connection
-        print("🔍 Testing Supabase connection...")
-        
-        # Try to fetch users (adjust table name as needed)
-        try:
-            # Test 1: Basic table access
-            print("🔍 Testing user table access...")
-            response = supabase.table("users").select("*").limit(1).execute()
-            
-            user_count = len(response.data) if response.data else 0
-            
-            return {
-                "status": "success",
-                "message": "Supabase connection and user fetch successful",
-                "user_count": user_count,
-                "sample_data": response.data[:2] if response.data else [],  # Show first 2 users
-                "timestamp": datetime.now().isoformat(),
-                "supabase_url": supabase_url
-            }
-            
-        except Exception as table_error:
-            print(f"⚠️ Table access error: {table_error}")
-            
-            # Try alternative table names
-            alternative_tables = ["user", "profiles", "auth_users", "customers"]
-            
-            for table_name in alternative_tables:
-                try:
-                    print(f"🔍 Trying alternative table: {table_name}")
-                    response = supabase.table(table_name).select("*").limit(1).execute()
-                    
-                    user_count = len(response.data) if response.data else 0
-                    
-                    return {
-                        "status": "success",
-                        "message": f"Supabase connection successful with table '{table_name}'",
-                        "table_found": table_name,
-                        "user_count": user_count,
-                        "sample_data": response.data[:2] if response.data else [],
-                        "timestamp": datetime.now().isoformat(),
-                        "supabase_url": supabase_url
-                    }
-                    
-                except Exception as alt_error:
-                    print(f"⚠️ Table {table_name} failed: {alt_error}")
-                    continue
-            
-            # If no tables work, return connection success but no data
-            return {
-                "status": "warning",
-                "message": "Supabase connected but no user tables found",
-                "tables_tried": alternative_tables,
-                "error": str(table_error),
-                "timestamp": datetime.now().isoformat(),
-                "supabase_url": supabase_url
-            }
-            
-    except Exception as e:
-        print(f"❌ Supabase test error: {e}")
-        return {
-            "status": "error",
-            "message": "Supabase test failed",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat(),
-            "supabase_url": supabase_url
-        }
-
-@app.get("/supabase-users")
-async def get_supabase_users():
-    """Get users from Supabase"""
-    try:
-        if not supabase:
-            raise HTTPException(status_code=500, detail="Supabase client not initialized")
-        
-        # Try to fetch users from different possible table names
-        table_names = ["users", "user", "profiles", "auth_users", "customers"]
-        
-        for table_name in table_names:
-            try:
-                print(f"🔍 Trying to fetch users from table: {table_name}")
-                response = supabase.table(table_name).select("*").execute()
-                
-                if response.data:
-                    return {
-                        "status": "success",
-                        "table": table_name,
-                        "user_count": len(response.data),
-                        "users": response.data,
-                        "timestamp": datetime.now().isoformat()
-                    }
-                    
-            except Exception as table_error:
-                print(f"⚠️ Table {table_name} failed: {table_error}")
-                continue
-        
-        # If no tables work, return a more helpful error
-        return {
-            "status": "warning",
-            "message": "No user tables found in Supabase",
-            "tables_tried": table_names,
-            "suggestion": "Please check your Supabase database for user table names",
-            "timestamp": datetime.now().isoformat()
-        }
-        
-    except Exception as e:
-        print(f"❌ Supabase users fetch error: {e}")
-        error_detail = str(e)
-        
-        # Handle specific network errors
-        if "Name or service not known" in error_detail:
-            return {
-                "status": "error",
-                "message": "Network connection issue - cannot reach Supabase",
-                "error": "DNS resolution failed for Supabase service",
-                "suggestion": "Check your internet connection and Supabase URL",
-                "timestamp": datetime.now().isoformat()
-            }
-        elif "timeout" in error_detail.lower():
-            return {
-                "status": "error", 
-                "message": "Connection timeout to Supabase",
-                "error": error_detail,
-                "suggestion": "Check your network connection and try again",
-                "timestamp": datetime.now().isoformat()
-            }
-        else:
-            return {
-                "status": "error",
-                "message": "Failed to fetch users from Supabase",
-                "error": error_detail,
-                "suggestion": "Check Supabase configuration and permissions",
-                "timestamp": datetime.now().isoformat()
-            }
-
-@app.get("/supabase-connection")
-async def test_supabase_connection():
-    """Simple Supabase connection test without table access"""
-    try:
-        if not supabase:
-            return {
-                "status": "error",
-                "message": "Supabase client not initialized",
-                "timestamp": datetime.now().isoformat()
-            }
-        
-        # Just test if we can reach Supabase
-        print("🔍 Testing basic Supabase connectivity...")
-        
-        # Try a simple operation that doesn't require table access
-        try:
-            # This should work even without table access
-            response = supabase.auth.get_user()
-            return {
-                "status": "success",
-                "message": "Supabase connection successful",
-                "auth_test": "passed",
-                "timestamp": datetime.now().isoformat(),
-                "supabase_url": supabase_url
-            }
-        except Exception as auth_error:
-            print(f"⚠️ Auth test failed: {auth_error}")
-            
-            # If auth fails, try a different approach
-            try:
-                # Try to get Supabase info
-                response = supabase.table("_test_connection").select("count").limit(1).execute()
-                return {
-                    "status": "success", 
-                    "message": "Supabase connection successful (table access works)",
-                    "auth_test": "failed_but_connected",
-                    "timestamp": datetime.now().isoformat(),
-                    "supabase_url": supabase_url
-                }
-            except Exception as table_error:
-                print(f"⚠️ Table test failed: {table_error}")
-                
-                # Check if it's a network issue
-                if "Name or service not known" in str(table_error):
-                    return {
-                        "status": "error",
-                        "message": "Network connection issue - cannot reach Supabase",
-                        "error": "DNS resolution failed",
-                        "suggestion": "Check internet connection and Supabase URL",
-                        "timestamp": datetime.now().isoformat(),
-                        "supabase_url": supabase_url
-                    }
-                else:
-                    return {
-                        "status": "warning",
-                        "message": "Supabase connected but limited access",
-                        "error": str(table_error),
-                        "suggestion": "Check Supabase API key permissions",
-                        "timestamp": datetime.now().isoformat(),
-                        "supabase_url": supabase_url
-                    }
-                    
-    except Exception as e:
-        print(f"❌ Supabase connection test error: {e}")
-        return {
-            "status": "error",
-            "message": "Supabase connection test failed",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat(),
-            "supabase_url": supabase_url
-        }
-
-@app.get("/supabase/discover-tables")
-async def discover_supabase_tables():
-    """Discover what tables exist in Supabase database"""
-    try:
-        if not supabase:
-            return {
-                "status": "error",
-                "message": "Supabase client not initialized",
-                "timestamp": datetime.now().isoformat()
-            }
-        
-        print("🔍 Discovering Supabase tables...")
-        
-        # Try to get information about the database
-        try:
-            # Try to access a system table or get database info
-            response = supabase.table("_supabase_migrations").select("*").limit(1).execute()
-            return {
-                "status": "success",
-                "message": "System table access successful",
-                "tables_found": ["_supabase_migrations"],
-                "timestamp": datetime.now().isoformat(),
-                "supabase_url": supabase_url
-            }
-        except Exception as e:
-            print(f"⚠️ System table access failed: {e}")
-            
-            # Try common table names one by one
-            common_tables = [
-                "users", "user", "profiles", "auth_users", "customers",
-                "admin_users", "user_profiles", "user_data", "members",
-                "clients", "employees", "staff", "accounts"
-            ]
-            
-            found_tables = []
-            
-            for table_name in common_tables:
-                try:
-                    print(f"🔍 Testing table: {table_name}")
-                    response = supabase.table(table_name).select("count").limit(1).execute()
-                    found_tables.append(table_name)
-                    print(f"✅ Table {table_name} exists")
-                except Exception as table_error:
-                    print(f"❌ Table {table_name} not found: {table_error}")
-                    continue
-            
-            if found_tables:
-                return {
-                    "status": "success",
-                    "message": f"Found {len(found_tables)} tables in your database",
-                    "tables_found": found_tables,
-                    "suggestion": f"Try using one of these table names: {', '.join(found_tables)}",
-                    "timestamp": datetime.now().isoformat(),
-                    "supabase_url": supabase_url
-                }
-            else:
-                return {
-                    "status": "warning",
-                    "message": "No common user tables found",
-                    "tables_tried": common_tables,
-                    "suggestion": "Your database might have different table names. Check your Supabase dashboard.",
-                    "timestamp": datetime.now().isoformat(),
-                    "supabase_url": supabase_url
-                }
-                
-    except Exception as e:
-        print(f"❌ Table discovery error: {e}")
-        return {
-            "status": "error",
-            "message": "Failed to discover tables",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat(),
-            "supabase_url": supabase_url
-        }
-
-@app.get("/supabase/fetch-users/{table_name}")
-async def fetch_users_from_table(table_name: str):
-    """Fetch users from a specific table name"""
-    try:
-        if not supabase:
-            return {
-                "status": "error",
-                "message": "Supabase client not initialized",
-                "timestamp": datetime.now().isoformat()
-            }
-        
-        print(f"🔍 Fetching users from table: {table_name}")
-        
-        try:
-            # Try to fetch data from the specified table
-            response = supabase.table(table_name).select("*").execute()
-            
-            if response.data:
-                return {
-                    "status": "success",
-                    "table": table_name,
-                    "user_count": len(response.data),
-                    "users": response.data,
-                    "timestamp": datetime.now().isoformat(),
-                    "message": f"Successfully fetched {len(response.data)} users from {table_name}"
-                }
-            else:
-                return {
-                    "status": "warning",
-                    "table": table_name,
-                    "user_count": 0,
-                    "message": f"Table {table_name} exists but has no data",
-                    "timestamp": datetime.now().isoformat()
-                }
-                
-        except Exception as table_error:
-            print(f"❌ Table {table_name} access failed: {table_error}")
-            
-            # Check if it's a permission issue
-            if "permission" in str(table_error).lower():
-                return {
-                    "status": "error",
-                    "table": table_name,
-                    "message": f"Permission denied accessing table {table_name}",
-                    "error": str(table_error),
-                    "suggestion": "Check your Supabase API key permissions",
-                    "timestamp": datetime.now().isoformat()
-                }
-            elif "does not exist" in str(table_error).lower():
-                return {
-                    "status": "error",
-                    "table": table_name,
-                    "message": f"Table {table_name} does not exist",
-                    "error": str(table_error),
-                    "suggestion": "Use /supabase/discover-tables to see available tables",
-                    "timestamp": datetime.now().isoformat()
-                }
-            else:
-                return {
-                    "status": "error",
-                    "table": table_name,
-                    "message": f"Failed to access table {table_name}",
-                    "error": str(table_error),
-                    "timestamp": datetime.now().isoformat()
-                }
-                
-    except Exception as e:
-        print(f"❌ Fetch users error: {e}")
-        return {
-            "status": "error",
-            "message": "Failed to fetch users",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
-
-# ============================================================================
-# AI ASSISTANT ENDPOINT
-# ============================================================================
-
-@app.post("/api/ai-assistant")
-async def ai_assistant(request: Request):
-    """AI Assistant endpoint"""
-    try:
-        data = await request.json()
-        user_message = data.get("message", "")
-        
-        api_key = os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY")
-        
-        if not api_key:
-            raise HTTPException(status_code=400, detail="API key not configured")
-        
-        response = {
-            "message": f"AI Assistant received: {user_message}",
-            "timestamp": datetime.now().isoformat(),
-            "api_key_configured": bool(api_key)
-        }
-        
-        return JSONResponse(content=response)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI Assistant error: {str(e)}")
-
-# ============================================================================
-# SERVICE STATUS OVERVIEW
-# ============================================================================
-
-@app.get("/services/status")
-async def all_services_status():
-    """Get status of all consolidated services"""
-    services = {
-        "main_backend": {"port_equivalent": "8000", "status": "running"},
-        "file_manager": {"port_equivalent": "5002", "status": "running"},
-        "eproc_server": {"port_equivalent": "5023", "status": "running"},
-        "system_usage": {"port_equivalent": "5024", "status": "running"},
-        "dashboard_api": {"port_equivalent": "8004", "status": "running"},
-        "scrapers_api": {"port_equivalent": "5022", "status": "running"},
-        "analytics_api": {"port_equivalent": "8001", "status": "running"},
-        "additional_analytics": {"port_equivalent": "8002", "status": "running"},
-        "eproc_websocket": {"port_equivalent": "5020", "status": "running"},
-        "eproc_api": {"port_equivalent": "5021", "status": "running"},
-        "admin_metrics": {"port_equivalent": "8005", "status": "running"},
-        "tools": {"port_equivalent": "8006", "status": "running"}
-    }
-    
-    return {
-        "consolidated_backend": True,
-        "main_port": os.getenv("PORT", "8000"),
-        "services": services,
-        "timestamp": datetime.now().isoformat()
-    }
-
-# ============================================================================
-# ADMIN METRICS ENDPOINTS
-# ============================================================================
-
-@app.get("/main/api/admin/supabase-users")
-async def admin_supabase_users():
-    """Admin endpoint for Supabase users - matches the URL you're trying to access"""
-    try:
-        if not supabase:
-            return {
-                "status": "error",
-                "message": "Supabase client not initialized",
-                "timestamp": datetime.now().isoformat()
-            }
-        
-        # Try to fetch users from different possible table names
-        table_names = ["users", "user", "profiles", "auth_users", "customers"]
-        
-        for table_name in table_names:
-            try:
-                print(f"🔍 Admin: Trying to fetch users from table: {table_name}")
-                response = supabase.table(table_name).select("*").execute()
-                
-                if response.data:
-                    return {
-                        "status": "success",
-                        "table": table_name,
-                        "user_count": len(response.data),
-                        "users": response.data,
-                        "timestamp": datetime.now().isoformat(),
-                        "endpoint": "/main/api/admin/supabase-users"
-                    }
-                    
-            except Exception as table_error:
-                print(f"⚠️ Admin: Table {table_name} failed: {table_error}")
-                continue
-        
-        # If no tables work, return a more helpful error
-        return {
-            "status": "warning",
-            "message": "No user tables found in Supabase",
-            "tables_tried": table_names,
-            "suggestion": "Please check your Supabase database for user table names",
-            "timestamp": datetime.now().isoformat(),
-            "endpoint": "/main/api/admin/supabase-users"
-        }
-        
-    except Exception as e:
-        print(f"❌ Admin Supabase users fetch error: {e}")
-        error_detail = str(e)
-        
-        # Handle specific network errors
-        if "Name or service not known" in error_detail:
-            return {
-                "status": "error",
-                "message": "Network connection issue - cannot reach Supabase",
-                "error": "DNS resolution failed for Supabase service",
-                "suggestion": "Check your internet connection and Supabase URL",
-                "timestamp": datetime.now().isoformat(),
-                "endpoint": "/main/api/admin/supabase-users"
-            }
-        else:
-            return {
-                "status": "error",
-                "message": "Failed to fetch users from Supabase",
-                "error": error_detail,
-                "suggestion": "Check Supabase configuration and permissions",
-                "timestamp": datetime.now().isoformat(),
-                "endpoint": "/main/api/admin/supabase-users"
-            }
-
-@app.get("/admin-metrics/health")
-async def admin_metrics_health():
-    """Admin metrics health check"""
-    return {
-        "service": "admin_metrics",
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "endpoints": [
-            "/main/api/admin/supabase-users",
-            "/admin-metrics/health",
-            "/admin-metrics/system-stats"
-        ]
-    }
-
-@app.get("/admin-metrics/system-stats")
-async def admin_system_stats():
-    """Admin system statistics"""
-    try:
-        cpu_percent = psutil.cpu_percent(interval=1)
-        memory = psutil.virtual_memory()
-        disk = psutil.disk_usage('/')
-        
-        return {
-            "status": "success",
-            "service": "admin_metrics",
-            "system_stats": {
-                "cpu_percent": cpu_percent,
-                "memory_percent": memory.percent,
-                "memory_available": memory.available,
-                "memory_total": memory.total,
-                "disk_percent": disk.percent,
-                "disk_free": disk.free,
-                "disk_total": disk.total
-            },
-            "timestamp": datetime.now().isoformat()
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": "Failed to get system stats",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
-
-# ============================================================================
-# TOOL-SPECIFIC ENDPOINTS (Gem, E-Procurement, Ireps)
-# ============================================================================
-
-@app.get("/tools/gem/health")
-async def gem_tool_health():
-    """Gem tool health check"""
-    return {
-        "service": "gem_tool",
-        "status": "healthy",
-        "description": "Scrapes data from the GEM website and generates Excel files",
-        "timestamp": datetime.now().isoformat(),
-        "endpoints": [
-            "/tools/gem/health",
-            "/tools/gem/start-scraping",
-            "/tools/gem/stop-scraping",
-            "/tools/gem/status"
-        ]
-    }
-
-@app.post("/tools/gem/start-scraping")
-async def gem_start_scraping(request: Request):
-    """Start gem scraping process"""
-    try:
-        data = await request.json()
-        state = data.get("state", "ANDAMAN & NICOBAR")
-        city = data.get("city", "Skip city filtering")
-        start_page = data.get("start_page", 1)
-        total_pages = data.get("total_pages", 5)
-        username = data.get("username", "mahi")
-        
-        return {
-            "status": "success",
-            "message": f"Gem scraping started for {state}",
-            "config": {
-                "state": state,
-                "city": city,
-                "start_page": start_page,
-                "total_pages": total_pages,
-                "username": username
-            },
-            "timestamp": datetime.now().isoformat()
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": "Failed to start gem scraping",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
-
-@app.post("/tools/gem/stop-scraping")
-async def gem_stop_scraping():
-    """Stop gem scraping process"""
-    return {
-        "status": "success",
-        "message": "Gem scraping stopped",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/tools/gem/status")
-async def gem_scraping_status():
-    """Get gem scraping status"""
-    return {
-        "status": "idle",
-        "message": "Gem tool is ready",
-        "last_scrape": None,
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/tools/eprocurement/health")
-async def eprocurement_tool_health():
-    """E-Procurement tool health check"""
-    return {
-        "service": "eprocurement_tool",
-        "status": "healthy",
-        "description": "E-Procurement data processing and management",
-        "timestamp": datetime.now().isoformat(),
-        "endpoints": [
-            "/tools/eprocurement/health",
-            "/tools/eprocurement/process",
-            "/tools/eprocurement/status"
-        ]
-    }
-
-@app.post("/tools/eprocurement/process")
-async def eprocurement_process(request: Request):
-    """Process e-procurement data"""
-    try:
-        data = await request.json()
-        
-        return {
-            "status": "success",
-            "message": "E-Procurement processing started",
-            "config": data,
-            "timestamp": datetime.now().isoformat()
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": "Failed to start e-procurement processing",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
-
-@app.get("/tools/eprocurement/status")
-async def eprocurement_status():
-    """Get e-procurement processing status"""
-    return {
-        "status": "idle",
-        "message": "E-Procurement tool is ready",
-        "last_process": None,
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/tools/ireps/health")
-async def ireps_tool_health():
-    """Ireps tool health check"""
-    return {
-        "service": "ireps_tool",
-        "status": "healthy",
-        "description": "Ireps data processing and management",
-        "timestamp": datetime.now().isoformat(),
-        "endpoints": [
-            "/tools/ireps/health",
-            "/tools/ireps/process",
-            "/tools/ireps/status"
-        ]
-    }
-
-@app.post("/tools/ireps/process")
-async def ireps_process(request: Request):
-    """Process ireps data"""
-    try:
-        data = await request.json()
-        
-        return {
-            "status": "success",
-            "message": "Ireps processing started",
-            "config": data,
-            "timestamp": datetime.now().isoformat()
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": "Failed to start ireps processing",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
-
-@app.get("/tools/ireps/status")
-async def ireps_status():
-    """Get ireps processing status"""
-    return {
-        "status": "idle",
-        "message": "Ireps tool is ready",
-        "last_process": None,
-        "timestamp": datetime.now().isoformat()
-    }
-
-# ============================================================================
-# WEBSOCKET CONNECTION TEST ENDPOINTS
-# ============================================================================
-
-@app.get("/websocket/test")
-async def websocket_test():
-    """Test WebSocket connectivity"""
-    return {
-        "status": "success",
-        "message": "WebSocket endpoint available",
-        "websocket_url": "wss://lavangam-backend.onrender.com/ws",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/tools/websocket-status")
-async def all_tools_websocket_status():
-    """Get WebSocket status for all tools"""
-    return {
-        "status": "success",
-        "tools": {
-            "gem": {
-                "websocket": "available",
-                "endpoint": "/tools/gem/websocket",
-                "status": "ready"
-            },
-            "eprocurement": {
-                "websocket": "available", 
-                "endpoint": "/tools/eprocurement/websocket",
-                "status": "ready"
-            },
-            "ireps": {
-                "websocket": "available",
-                "endpoint": "/tools/ireps/websocket", 
-                "status": "ready"
-            }
-        },
-        "timestamp": datetime.now().isoformat()
-    }
-
-# ============================================================================
-# MAIN STARTUP
-# ============================================================================
-
 if __name__ == "__main__":
-    print("🚀 Starting Lavangam Consolidated Backend on Render...")
+    import uvicorn
+    print("🚀 Starting Lavangam Backend Server on Render...")
+    print(f"🌐 Port: {os.getenv('PORT', '8000')}")
     print(f"✅ Environment: {os.getenv('RENDER_ENVIRONMENT', 'production')}")
-    print(f"✅ Python Version: {python_version.major}.{python_version.minor}.{python_version.micro}")
-    print(f"✅ Supabase URL: {supabase_url}")
-    print(f"✅ Database Host: {os.getenv('DB_HOST', '44.244.61.85')}")
     
     try:
         port = int(os.getenv("PORT", 8000))
@@ -1184,20 +457,13 @@ if __name__ == "__main__":
         port = 8000
         print(f"🔄 Using default port: {port}")
     
-    print("🚀 Starting consolidated backend...")
-    print("✅ All services consolidated into one FastAPI app")
-    print("✅ Each service available via route prefixes")
-    print("✅ Single port deployment for Render compatibility")
-    
     try:
         uvicorn.run(
             app,
             host="0.0.0.0",
             port=port,
             reload=False,
-            log_level="info",
-            access_log=True,
-            server_header=False
+            log_level="info"
         )
     except Exception as e:
         print(f"❌ Failed to start server: {e}")
