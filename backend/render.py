@@ -8,9 +8,12 @@ import os
 import sys
 from pathlib import Path
 
+print("🚀 Starting Lavangam Backend initialization...")
+
 # Add the backend directory to Python path
 backend_path = Path(__file__).parent
 sys.path.insert(0, str(backend_path))
+print(f"✅ Backend path added: {backend_path}")
 
 # Check Python version first
 python_version = sys.version_info
@@ -19,12 +22,24 @@ print(f"🐍 Python version: {python_version.major}.{python_version.minor}.{pyth
 if python_version.major == 3 and python_version.minor >= 13:
     print("⚠️ Warning: Python 3.13+ detected. Some packages may have compatibility issues.")
 
+print("📦 Starting package imports...")
+
 try:
+    print("📦 Importing FastAPI...")
     from fastapi import FastAPI, Request, HTTPException
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import JSONResponse, HTMLResponse
+    print("✅ FastAPI imported successfully")
+    
+    print("📦 Importing uvicorn...")
     import uvicorn
+    print("✅ uvicorn imported successfully")
+    
+    print("📦 Importing supabase...")
     from supabase import create_client, Client
+    print("✅ supabase imported successfully")
+    
+    print("📦 Importing other packages...")
     import requests
     import json
     import time
@@ -40,8 +55,8 @@ try:
     import base64
     import logging
     from typing import Dict, Any, Optional
-    import os
     from dotenv import load_dotenv
+    print("✅ All other packages imported successfully")
     
     print("✅ All imports successful!")
     
@@ -56,8 +71,31 @@ except ImportError as e:
         print(f"Failed to install packages: {install_error}")
         print("Please check your requirements-render.txt file and build script.")
 
+print("🔧 Loading environment variables...")
+
 # Load environment variables
 load_dotenv()
+print("✅ Environment variables loaded")
+
+# Check critical environment variables
+print("🔍 Checking critical environment variables...")
+critical_vars = {
+    "DB_HOST": os.getenv("DB_HOST"),
+    "DB_USER": os.getenv("DB_USER"),
+    "DB_PASSWORD": os.getenv("DB_PASSWORD"),
+    "SUPABASE_URL": os.getenv("SUPABASE_URL"),
+    "SUPABASE_KEY": os.getenv("SUPABASE_KEY"),
+    "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
+    "RENDER_ENVIRONMENT": os.getenv("RENDER_ENVIRONMENT")
+}
+
+for var_name, var_value in critical_vars.items():
+    if var_value:
+        print(f"✅ {var_name}: {'*' * len(var_value) if 'PASSWORD' in var_name or 'KEY' in var_name else var_value}")
+    else:
+        print(f"⚠️ {var_name}: NOT SET")
+
+print("🏗️ Initializing FastAPI app...")
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -65,6 +103,8 @@ app = FastAPI(
     description="Consolidated backend service for Lavangam platform",
     version="1.0.0"
 )
+
+print("✅ FastAPI app initialized")
 
 # Add CORS middleware
 app.add_middleware(
@@ -75,7 +115,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+print("✅ CORS middleware added")
+
 # Initialize Supabase client
+print("🔗 Initializing Supabase client...")
 supabase_url = os.getenv("SUPABASE_URL", "https://zjfjaezztfydiryzfd.supabase.co")
 supabase_key = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqZmphZXp6dGZ5ZGlyeXpzeXZkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTAyNzAyMSwiZXhwIjoyMDY2NjAzMDIxfQ.sRbGz6wbBoMmY8Ol3vEPc4VOh2oEWpcONi9DkUsTpKk")
 
@@ -285,12 +328,19 @@ if __name__ == "__main__":
     
     # Get port from Render environment
     port = int(os.getenv("PORT", 8000))
+    print(f"🌐 Binding to port: {port}")
     
-    # Start the server
-    uvicorn.run(
-        "render:app",
-        host="0.0.0.0",
-        port=port,
-        reload=False,
-        log_level="info"
-    )
+    try:
+        print("🚀 Starting uvicorn server...")
+        # Start the server
+        uvicorn.run(
+            "render:app",
+            host="0.0.0.0",
+            port=port,
+            reload=False,
+            log_level="info"
+        )
+    except Exception as e:
+        print(f"❌ Failed to start server: {e}")
+        print("🔍 Check the logs above for more details")
+        sys.exit(1)
