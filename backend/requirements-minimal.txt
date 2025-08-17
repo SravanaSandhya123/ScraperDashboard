@@ -1,23 +1,36 @@
-# Minimal requirements for emergency fallback
-# Use this if the main requirements fail to install
+# Minimal requirements for Lavangam Backend (Python 3.13 compatible)
+# Core dependencies only - minimal set for basic functionality
 
-# Core FastAPI (essential)
+# FastAPI core
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-
-# Basic utilities
 python-multipart==0.0.6
-python-dotenv==1.0.0
 
-# Database (essential)
+# Environment and utilities
+python-dotenv==1.0.0
+requests==2.31.0
+
+# Database
 pymysql==1.1.0
 
-# Supabase (essential)
+# Supabase
 supabase==2.0.2
 
-# WebDriver (essential for your scraping)
+# System monitoring
+psutil==5.9.6
+
+# Data processing (minimal versions)
+pandas==2.1.4
+numpy==1.26.2
+
+# Web scraping
 selenium==4.15.2
 webdriver-manager==4.0.1
 
-# Note: Skipping pandas/numpy to avoid Python 3.13 compilation issues
-# These can be added later once Python version is confirmed
+# AI/ML
+openai==1.3.7
+groq==0.4.2
+
+# Additional utilities
+pydantic==2.5.0
+jinja2==3.1.2

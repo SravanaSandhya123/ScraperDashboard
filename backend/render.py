@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Render Deployment Entry Point for Lavangam Backend
 Consolidates all services under a single endpoint for Render deployment
@@ -67,15 +68,29 @@ except ImportError as e:
         import subprocess
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements-render.txt"])
         print("Packages installed. Please restart the service.")
+        sys.exit(0)  # Exit to allow restart
     except Exception as install_error:
         print(f"Failed to install packages: {install_error}")
         print("Please check your requirements-render.txt file and build script.")
+        sys.exit(1)
 
 print("🔧 Loading environment variables...")
 
-# Load environment variables
-load_dotenv()
-print("✅ Environment variables loaded")
+# Load environment variables - moved inside try block to ensure dotenv is imported
+try:
+    load_dotenv()
+    print("✅ Environment variables loaded")
+except NameError:
+    print("❌ load_dotenv not available. Installing python-dotenv...")
+    try:
+        import subprocess
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "python-dotenv"])
+        from dotenv import load_dotenv
+        load_dotenv()
+        print("✅ Environment variables loaded after installing python-dotenv")
+    except Exception as e:
+        print(f"❌ Failed to install python-dotenv: {e}")
+        sys.exit(1)
 
 # Check critical environment variables
 print("🔍 Checking critical environment variables...")
@@ -138,8 +153,16 @@ async def health_check():
         "timestamp": datetime.now().isoformat(),
         "service": "lavangam-backend",
         "environment": os.getenv("RENDER_ENVIRONMENT", "production"),
-        "python_version": f"{python_version.major}.{python_version.minor}.{python_version.micro}"
+        "python_version": f"{python_version.major}.{python_version.minor}.{python_version.micro}",
+        "port": os.getenv("PORT", "8000"),
+        "host": "0.0.0.0"
     }
+
+# Simple ping endpoint for port detection
+@app.get("/ping")
+async def ping():
+    """Simple ping endpoint for port detection"""
+    return {"message": "pong", "status": "ok"}
 
 # Root endpoint
 @app.get("/")
@@ -332,9 +355,9 @@ if __name__ == "__main__":
     
     try:
         print("🚀 Starting uvicorn server...")
-        # Start the server
+        # Start the server - FIXED: Run app directly, not as module
         uvicorn.run(
-            "render:app",
+            app,
             host="0.0.0.0",
             port=port,
             reload=False,
