@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+# Auto-generated script for main-backend
+import os
+import sys
+from pathlib import Path
+
+# Set environment variables
+os.environ["RENDER_ENVIRONMENT"] = "production"
+os.environ["DB_HOST"] = "44.244.61.85"
+os.environ["PORT"] = "8000"
+
+# Add current directory to path
+sys.path.insert(0, str(Path(__file__).parent))
+
+# Import and run the service
+try:
+    if "render.py".endswith('.py'):
+        script_name = "render.py"[:-3]
+        module = __import__(script_name)
+        
+        # Check if it's a FastAPI app
+        if hasattr(module, 'app'):
+            import uvicorn
+            port = int(os.getenv("PORT", 8000))
+            print(f"Starting {script_name} on port {port}...")
+            uvicorn.run(module.app, host="0.0.0.0", port=port)
+        else:
+            print(f"{script_name} doesn't have a FastAPI app")
+    else:
+        print(f"Unsupported script type: {config["script"]}")
+        
+except Exception as e:
+    print(f"Failed to start {service_name}: {e}")
+    sys.exit(1)

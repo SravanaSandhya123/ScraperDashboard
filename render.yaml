@@ -1,44 +1,110 @@
 services:
+  # Main backend service (already working)
   - type: web
     name: lavangam-backend
     env: python
-    plan: free
-    buildCommand: |
-      echo "🚀 Building Lavangam Backend with ALL required packages..."
-      echo "📁 Current directory: $(pwd)"
-      echo "📦 Installing Python packages..."
-      pip install --upgrade pip setuptools wheel
-      pip install -r backend/requirements-simple.txt --verbose
-      echo "✅ Package installation completed!"
-      echo "🔍 Verifying critical packages..."
-      python -c "import fastapi; print('✅ FastAPI imported')"
-      python -c "import selenium; print('✅ Selenium imported')"
-      python -c "import supabase; print('✅ Supabase imported')"
-      python -c "import requests; print('✅ Requests imported')"
-      echo "🎯 All packages verified successfully!"
-    startCommand: |
-      echo "🚀 Starting Lavangam Backend..."
-      echo "📁 Current directory: $(pwd)"
-      echo "📦 Python version: $(python --version)"
-      echo "🔍 Starting backend with original working code..."
-      cd backend && python render_consolidated.py
-    healthCheckPath: /health
+    buildCommand: pip install -r requirements-ultra-simple.txt
+    startCommand: python backend/render_scripts/start_main-backend.py
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.7
-      - key: PORT
-        value: 8000
-      - key: DB_HOST
-        value: 44.244.61.85
-      - key: DB_NAME
-        value: Toolinformation
-      - key: DB_USER
-        value: admin
-      - key: DB_PASSWORD
-        value: admin123
-      - key: SUPABASE_URL
-        value: https://zjfjaezztfydiryzsyvd.supabase.co
-      - key: SUPABASE_KEY
-        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqZmphZXp6dGZ5ZGlyeXpzeXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEwMjcwMjEsImV4cCI6MjA2NjYwMzAyMX0.6ZVMwXK4aMGmR68GTYo0yt_L7bOg5QWtElTaa8heQos
       - key: RENDER_ENVIRONMENT
         value: production
+      - key: DB_HOST
+        value: 44.244.61.85
+
+  # Eproc Server - Port 5022
+  - type: web
+    name: lavangam-backend-eproc
+    env: python
+    buildCommand: pip install -r requirements-ultra-simple.txt
+    startCommand: python backend/render_scripts/start_eproc_server.py
+    envVars:
+      - key: RENDER_ENVIRONMENT
+        value: production
+      - key: DB_HOST
+        value: 44.244.61.85
+      - key: PORT
+        value: 5022
+
+  # System Usage API - Port 5024
+  - type: web
+    name: lavangam-backend-system
+    env: python
+    buildCommand: pip install -r requirements-ultra-simple.txt
+    startCommand: python backend/render_scripts/start_system_usage_api.py
+    envVars:
+      - key: RENDER_ENVIRONMENT
+        value: production
+      - key: DB_HOST
+        value: 44.244.61.85
+      - key: PORT
+        value: 5024
+
+  # Dashboard API - Port 8004
+  - type: web
+    name: lavangam-backend-dashboard
+    env: python
+    buildCommand: pip install -r requirements-ultra-simple.txt
+    startCommand: python backend/render_scripts/start_dashboard_api.py
+    envVars:
+      - key: RENDER_ENVIRONMENT
+        value: production
+      - key: DB_HOST
+        value: 44.244.61.85
+      - key: PORT
+        value: 8004
+
+  # File Manager - Port 5026
+  - type: web
+    name: lavangam-backend-files
+    env: python
+    buildCommand: pip install -r requirements-ultra-simple.txt
+    startCommand: python backend/render_scripts/start_file_manager.py
+    envVars:
+      - key: RENDER_ENVIRONMENT
+        value: production
+      - key: DB_HOST
+        value: 44.244.61.85
+      - key: PORT
+        value: 5026
+
+  # Scraper WebSocket - Port 5028
+  - type: web
+    name: lavangam-backend-scraper
+    env: python
+    buildCommand: pip install -r requirements-ultra-simple.txt
+    startCommand: python backend/render_scripts/start_scraper_ws.py
+    envVars:
+      - key: RENDER_ENVIRONMENT
+        value: production
+      - key: DB_HOST
+        value: 44.244.61.85
+      - key: PORT
+        value: 5028
+
+  # Admin Metrics API - Port 5030
+  - type: web
+    name: lavangam-backend-metrics
+    env: python
+    buildCommand: pip install -r requirements-ultra-simple.txt
+    startCommand: python backend/render_scripts/start_admin_metrics_api.py
+    envVars:
+      - key: RENDER_ENVIRONMENT
+        value: production
+      - key: DB_HOST
+        value: 44.244.61.85
+      - key: PORT
+        value: 5030
+
+  # Dashboard WebSocket - Port 5032
+  - type: web
+    name: lavangam-backend-websocket
+    env: python
+    buildCommand: pip install -r requirements-ultra-simple.txt
+    startCommand: python backend/render_scripts/start_dashboard_websocket.py
+    envVars:
+      - key: RENDER_ENVIRONMENT
+        value: production
+      - key: DB_HOST
+        value: 44.244.61.85
+      - key: PORT
+        value: 5032
