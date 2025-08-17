@@ -533,12 +533,116 @@ async def get_supabase_users():
                 print(f"⚠️ Table {table_name} failed: {table_error}")
                 continue
         
-        # If no tables work
-        raise HTTPException(status_code=404, detail="No user tables found")
+        # If no tables work, return a more helpful error
+        return {
+            "status": "warning",
+            "message": "No user tables found in Supabase",
+            "tables_tried": table_names,
+            "suggestion": "Please check your Supabase database for user table names",
+            "timestamp": datetime.now().isoformat()
+        }
         
     except Exception as e:
         print(f"❌ Supabase users fetch error: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch users: {str(e)}")
+        error_detail = str(e)
+        
+        # Handle specific network errors
+        if "Name or service not known" in error_detail:
+            return {
+                "status": "error",
+                "message": "Network connection issue - cannot reach Supabase",
+                "error": "DNS resolution failed for Supabase service",
+                "suggestion": "Check your internet connection and Supabase URL",
+                "timestamp": datetime.now().isoformat()
+            }
+        elif "timeout" in error_detail.lower():
+            return {
+                "status": "error", 
+                "message": "Connection timeout to Supabase",
+                "error": error_detail,
+                "suggestion": "Check your network connection and try again",
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Failed to fetch users from Supabase",
+                "error": error_detail,
+                "suggestion": "Check Supabase configuration and permissions",
+                "timestamp": datetime.now().isoformat()
+            }
+
+@app.get("/supabase-connection")
+async def test_supabase_connection():
+    """Simple Supabase connection test without table access"""
+    try:
+        if not supabase:
+            return {
+                "status": "error",
+                "message": "Supabase client not initialized",
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        # Just test if we can reach Supabase
+        print("🔍 Testing basic Supabase connectivity...")
+        
+        # Try a simple operation that doesn't require table access
+        try:
+            # This should work even without table access
+            response = supabase.auth.get_user()
+            return {
+                "status": "success",
+                "message": "Supabase connection successful",
+                "auth_test": "passed",
+                "timestamp": datetime.now().isoformat(),
+                "supabase_url": supabase_url
+            }
+        except Exception as auth_error:
+            print(f"⚠️ Auth test failed: {auth_error}")
+            
+            # If auth fails, try a different approach
+            try:
+                # Try to get Supabase info
+                response = supabase.table("_test_connection").select("count").limit(1).execute()
+                return {
+                    "status": "success", 
+                    "message": "Supabase connection successful (table access works)",
+                    "auth_test": "failed_but_connected",
+                    "timestamp": datetime.now().isoformat(),
+                    "supabase_url": supabase_url
+                }
+            except Exception as table_error:
+                print(f"⚠️ Table test failed: {table_error}")
+                
+                # Check if it's a network issue
+                if "Name or service not known" in str(table_error):
+                    return {
+                        "status": "error",
+                        "message": "Network connection issue - cannot reach Supabase",
+                        "error": "DNS resolution failed",
+                        "suggestion": "Check internet connection and Supabase URL",
+                        "timestamp": datetime.now().isoformat(),
+                        "supabase_url": supabase_url
+                    }
+                else:
+                    return {
+                        "status": "warning",
+                        "message": "Supabase connected but limited access",
+                        "error": str(table_error),
+                        "suggestion": "Check Supabase API key permissions",
+                        "timestamp": datetime.now().isoformat(),
+                        "supabase_url": supabase_url
+                    }
+                    
+    except Exception as e:
+        print(f"❌ Supabase connection test error: {e}")
+        return {
+            "status": "error",
+            "message": "Supabase connection test failed",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+            "supabase_url": supabase_url
+        }
 
 # ============================================================================
 # AI ASSISTANT ENDPOINT
