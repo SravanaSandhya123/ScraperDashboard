@@ -39,5 +39,15 @@ services:
         value: 5024
       - key: DASHBOARD_API_PORT
         value: 8004
+      - key: SCRAPERS_API_PORT
+        value: 5022
+      - key: ANALYTICS_API_PORT
+        value: 8001
+      - key: ADDITIONAL_ANALYTICS_PORT
+        value: 8002
+      - key: EPROC_WEBSOCKET_PORT
+        value: 5020
+      - key: EPROC_API_PORT
+        value: 5021
     healthCheckPath: /ping
     autoDeploy: true

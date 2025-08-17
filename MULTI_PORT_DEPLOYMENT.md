@@ -6,8 +6,13 @@ This guide sets up **ALL your services** to run simultaneously on Render with mu
 
 - **Port 8000**: Main FastAPI Backend (Primary)
 - **Port 5002**: File Manager Flask App
+- **Port 5020**: E-Procurement WebSocket
+- **Port 5021**: E-Procurement API
+- **Port 5022**: Scrapers API
 - **Port 5023**: E-Procurement Server
 - **Port 5024**: System Usage API
+- **Port 8001**: Analytics API
+- **Port 8002**: Additional Analytics API
 - **Port 8004**: Dashboard API
 
 ## 📁 **Files Created**
@@ -75,8 +80,13 @@ GROQ_API_KEY=your_groq_key_here
 # Service Ports
 PORT=8000
 FILE_MANAGER_PORT=5002
+EPROC_WEBSOCKET_PORT=5020
+EPROC_API_PORT=5021
+SCRAPERS_API_PORT=5022
 EPROC_SERVER_PORT=5023
 SYSTEM_USAGE_PORT=5024
+ANALYTICS_API_PORT=8001
+ADDITIONAL_ANALYTICS_PORT=8002
 DASHBOARD_API_PORT=8004
 
 # Environment
@@ -90,8 +100,13 @@ Once deployed, your services will be available at:
 ```
 Main Backend:     https://your-app.onrender.com/ (Port 8000)
 File Manager:     https://your-app.onrender.com:5002/
-E-Procurement:    https://your-app.onrender.com:5023/
+E-Procurement WebSocket: https://your-app.onrender.com:5020/
+E-Procurement API: https://your-app.onrender.com:5021/
+Scrapers API:     https://your-app.onrender.com:5022/
+E-Procurement Server: https://your-app.onrender.com:5023/
 System Usage:     https://your-app.onrender.com:5024/
+Analytics API:    https://your-app.onrender.com:8001/
+Additional Analytics: https://your-app.onrender.com:8002/
 Dashboard API:    https://your-app.onrender.com:8004/
 ```
 
@@ -110,11 +125,26 @@ You should see in Render logs:
 🚀 Starting file_manager on port 5002...
 ✅ file_manager started on port 5002
 
+🚀 Starting eproc_websocket on port 5020...
+✅ eproc_websocket started on port 5020
+
+🚀 Starting eproc_api on port 5021...
+✅ eproc_api started on port 5021
+
+🚀 Starting scrapers_api on port 5022...
+✅ scrapers_api started on port 5022
+
 🚀 Starting eproc_server on port 5023...
 ✅ eproc_server started on port 5023
 
 🚀 Starting system_usage on port 5024...
 ✅ system_usage started on port 5024
+
+🚀 Starting analytics_api on port 8001...
+✅ analytics_api started on port 8001
+
+🚀 Starting additional_analytics on port 8002...
+✅ additional_analytics started on port 8002
 
 🚀 Starting dashboard_api on port 8004...
 ✅ dashboard_api started on port 8004
@@ -122,15 +152,25 @@ You should see in Render logs:
 📊 Service Status:
 main_backend        | Port 8000 | 🟢 Running
 file_manager        | Port 5002 | 🟢 Running
+eproc_websocket     | Port 5020 | 🟢 Running
+eproc_api           | Port 5021 | 🟢 Running
+scrapers_api        | Port 5022 | 🟢 Running
 eproc_server        | Port 5023 | 🟢 Running
 system_usage        | Port 5024 | 🟢 Running
+analytics_api       | Port 8001 | 🟢 Running
+additional_analytics| Port 8002 | 🟢 Running
 dashboard_api       | Port 8004 | 🟢 Running
 
 🌐 Service URLs:
 main_backend        | http://0.0.0.0:8000
 file_manager        | http://0.0.0.0:5002
+eproc_websocket     | http://0.0.0.0:5020
+eproc_api           | http://0.0.0.0:5021
+scrapers_api        | http://0.0.0.0:5022
 eproc_server        | http://0.0.0.0:5023
 system_usage        | http://0.0.0.0:5024
+analytics_api       | http://0.0.0.0:8001
+additional_analytics| http://0.0.0.0:8002
 dashboard_api       | http://0.0.0.0:8004
 ```
 
@@ -144,11 +184,26 @@ curl https://your-app.onrender.com/ping
 # File manager
 curl https://your-app.onrender.com:5002/
 
-# E-procurement
+# E-Procurement WebSocket
+curl https://your-app.onrender.com:5020/
+
+# E-Procurement API
+curl https://your-app.onrender.com:5021/
+
+# Scrapers API
+curl https://your-app.onrender.com:5022/
+
+# E-Procurement Server
 curl https://your-app.onrender.com:5023/
 
 # System usage
 curl https://your-app.onrender.com:5024/
+
+# Analytics API
+curl https://your-app.onrender.com:8001/
+
+# Additional Analytics
+curl https://your-app.onrender.com:8002/
 
 # Dashboard API
 curl https://your-app.onrender.com:8004/
@@ -178,7 +233,7 @@ curl https://your-app.onrender.com/test-database
 
 ## 🎉 **Success Indicators**
 
-- ✅ All 5 services show "🟢 Running" status
+- ✅ All 10 services show "🟢 Running" status
 - ✅ Health check responds: `{"message": "pong", "status": "ok"}`
 - ✅ Database test shows successful connection
 - ✅ All service URLs are accessible

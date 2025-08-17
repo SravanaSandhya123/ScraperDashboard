@@ -46,6 +46,31 @@ SERVICES = {
         "command": ["python", "dashboard_api.py"],
         "port": 8004,
         "description": "Dashboard API"
+    },
+    "scrapers_api": {
+        "command": ["python", "scrapers/api.py"],
+        "port": 5022,
+        "description": "Scrapers API"
+    },
+    "analytics_api": {
+        "command": ["python", "-m", "uvicorn", "analytics_api:app", "--host", "0.0.0.0", "--port", "8001"],
+        "port": 8001,
+        "description": "Analytics API"
+    },
+    "additional_analytics": {
+        "command": ["python", "-m", "uvicorn", "analytics_additional:app", "--host", "0.0.0.0", "--port", "8002"],
+        "port": 8002,
+        "description": "Additional Analytics API"
+    },
+    "eproc_websocket": {
+        "command": ["python", "eproc_websocket.py"],
+        "port": 5020,
+        "description": "E-Procurement WebSocket"
+    },
+    "eproc_api": {
+        "command": ["python", "eproc_api.py"],
+        "port": 5021,
+        "description": "E-Procurement API"
     }
 }
 
