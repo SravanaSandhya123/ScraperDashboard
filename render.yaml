@@ -10,9 +10,13 @@ services:
       cd backend
       python -m pip install --upgrade pip
       python -m pip install --upgrade wheel setuptools
+      echo "📦 Installing dependencies..."
       python -m pip install -r requirements-render.txt --no-cache-dir
-      python -c "import fastapi, uvicorn; print('✅ Core packages verified')"
-      echo "✅ Build completed"
+      echo "✅ Verifying core packages..."
+      python -c "import fastapi; print('✅ FastAPI installed')"
+      python -c "import uvicorn; print('✅ Uvicorn installed')"
+      python -c "import supabase; print('✅ Supabase installed')"
+      echo "✅ Build completed successfully"
     startCommand: |
       echo "🚀 Starting Lavangam Consolidated Backend..."
       cd backend
@@ -20,6 +24,8 @@ services:
       echo "📁 Contents: $(ls -la)"
       echo "🐍 Python version: $(python --version)"
       echo "📦 Installed packages: $(pip list | head -10)"
+      echo "🔍 Checking FastAPI availability..."
+      python -c "import fastapi; print('✅ FastAPI is available')" || echo "❌ FastAPI not found"
       echo "🚀 Starting consolidated backend with all services..."
       python render_consolidated.py
     envVars:
