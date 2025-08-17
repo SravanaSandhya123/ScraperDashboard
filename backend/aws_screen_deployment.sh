@@ -515,3 +515,4 @@ log ""
 log "✅ All services are now running in screen sessions!"
 log "🌐 Access your application at: http://your-ec2-ip/"
 
+
