@@ -1,0 +1,57 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+.mypy_cache/
+
+# Environment & secrets
+.env
+.env.*
+*.env
+aws.env
+render.env
+
+# OS & editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Build/output artifacts
+dist/
+build/
+output/
+outputs/
+coverage/
+.coverage
+*.zip
+*.tar
+*.tar.gz
+*.log
+
+# Scraper outputs & large data
+scrapers/outputs/
+scrapers/ireps/
+scrapers/gemscrape/scraped files/
+outputs/
+*.xlsx
+*.csv
+
+# Browser drivers/binaries
+scrapers/edgedriver_win64/
+
+# Misc
+.python-version
+.pnp.*
+.turbo
+
