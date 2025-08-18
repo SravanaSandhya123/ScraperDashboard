@@ -1,0 +1,216 @@
+{
+  "services": [
+    {
+      "type": "web",
+      "name": "lavangam-main-backend",
+      "env": "python",
+      "plan": "free",
+      "buildCommand": "pip install -r requirements-render.txt",
+      "startCommand": "uvicorn backend.main:app --host 0.0.0.0 --port $PORT",
+      "envVars": [
+        {
+          "key": "PORT",
+          "value": "8000"
+        },
+        {
+          "key": "RENDER_ENVIRONMENT",
+          "value": "production"
+        },
+        {
+          "key": "DB_HOST",
+          "value": "44.244.61.85"
+        }
+      ]
+    },
+    {
+      "type": "web",
+      "name": "lavangam-analytics-api",
+      "env": "python",
+      "plan": "free",
+      "buildCommand": "pip install -r requirements-render.txt",
+      "startCommand": "uvicorn analytics_api:app --host 0.0.0.0 --port $PORT",
+      "envVars": [
+        {
+          "key": "PORT",
+          "value": "8001"
+        },
+        {
+          "key": "RENDER_ENVIRONMENT",
+          "value": "production"
+        },
+        {
+          "key": "DB_HOST",
+          "value": "44.244.61.85"
+        }
+      ]
+    },
+    {
+      "type": "web",
+      "name": "lavangam-dashboard-websocket",
+      "env": "python",
+      "plan": "free",
+      "buildCommand": "pip install -r requirements-render.txt",
+      "startCommand": "python dashboard_websocket.py",
+      "envVars": [
+        {
+          "key": "PORT",
+          "value": "8002"
+        },
+        {
+          "key": "RENDER_ENVIRONMENT",
+          "value": "production"
+        },
+        {
+          "key": "DB_HOST",
+          "value": "44.244.61.85"
+        }
+      ]
+    },
+    {
+      "type": "web",
+      "name": "lavangam-dashboard-api",
+      "env": "python",
+      "plan": "free",
+      "buildCommand": "pip install -r requirements-render.txt",
+      "startCommand": "uvicorn dashboard_api:app --host 0.0.0.0 --port $PORT",
+      "envVars": [
+        {
+          "key": "PORT",
+          "value": "8004"
+        },
+        {
+          "key": "RENDER_ENVIRONMENT",
+          "value": "production"
+        },
+        {
+          "key": "DB_HOST",
+          "value": "44.244.61.85"
+        }
+      ]
+    },
+    {
+      "type": "web",
+      "name": "lavangam-admin-metrics",
+      "env": "python",
+      "plan": "free",
+      "buildCommand": "pip install -r requirements-render.txt",
+      "startCommand": "uvicorn admin_metrics_api:app --host 0.0.0.0 --port $PORT",
+      "envVars": [
+        {
+          "key": "PORT",
+          "value": "8005"
+        },
+        {
+          "key": "RENDER_ENVIRONMENT",
+          "value": "production"
+        },
+        {
+          "key": "DB_HOST",
+          "value": "44.244.61.85"
+        }
+      ]
+    },
+    {
+      "type": "web",
+      "name": "lavangam-unified-api",
+      "env": "python",
+      "plan": "free",
+      "buildCommand": "pip install -r requirements-render.txt",
+      "startCommand": "uvicorn unified_api_complete:app --host 0.0.0.0 --port $PORT",
+      "envVars": [
+        {
+          "key": "PORT",
+          "value": "8006"
+        },
+        {
+          "key": "RENDER_ENVIRONMENT",
+          "value": "production"
+        },
+        {
+          "key": "DB_HOST",
+          "value": "44.244.61.85"
+        }
+      ]
+    },
+    {
+      "type": "web",
+      "name": "lavangam-file-manager",
+      "env": "python",
+      "plan": "free",
+      "buildCommand": "pip install -r requirements-render.txt",
+      "startCommand": "python file_manager.py",
+      "envVars": [
+        {
+          "key": "PORT",
+          "value": "5002"
+        },
+        {
+          "key": "RENDER_ENVIRONMENT",
+          "value": "production"
+        },
+        {
+          "key": "FLASK_ENV",
+          "value": "production"
+        }
+      ]
+    },
+    {
+      "type": "web",
+      "name": "lavangam-eproc-server",
+      "env": "python",
+      "plan": "free",
+      "buildCommand": "pip install -r requirements-render.txt",
+      "startCommand": "python eproc_server.py",
+      "envVars": [
+        {
+          "key": "PORT",
+          "value": "5021"
+        },
+        {
+          "key": "RENDER_ENVIRONMENT",
+          "value": "production"
+        },
+        {
+          "key": "FLASK_ENV",
+          "value": "production"
+        }
+      ]
+    },
+    {
+      "type": "web",
+      "name": "lavangam-scrapers-api",
+      "env": "python",
+      "plan": "free",
+      "buildCommand": "pip install -r requirements-render.txt",
+      "startCommand": "uvicorn backend.scrapers.api:app --host 0.0.0.0 --port $PORT",
+      "envVars": [
+        {
+          "key": "PORT",
+          "value": "5022"
+        },
+        {
+          "key": "RENDER_ENVIRONMENT",
+          "value": "production"
+        }
+      ]
+    },
+    {
+      "type": "web",
+      "name": "lavangam-system-usage",
+      "env": "python",
+      "plan": "free",
+      "buildCommand": "pip install -r requirements-render.txt",
+      "startCommand": "uvicorn system_usage_api:app --host 0.0.0.0 --port $PORT",
+      "envVars": [
+        {
+          "key": "PORT",
+          "value": "5024"
+        },
+        {
+          "key": "RENDER_ENVIRONMENT",
+          "value": "production"
+        }
+      ]
+    }
+  ]
+}
