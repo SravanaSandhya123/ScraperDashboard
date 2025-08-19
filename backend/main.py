@@ -104,6 +104,11 @@ async def open_chrome(request: Request):
         options.add_argument("--ignore-certificate-errors")
         options.add_argument("--ignore-ssl-errors")
         options.add_argument("--ignore-certificate-errors-spki-list")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--remote-allow-origins=*")
+        options.add_argument("--headless=new")
         options.add_argument(f"--user-data-dir={tempfile.mkdtemp(prefix='chrome-profile-')}")
 
         service = ChromeService(executable_path=ChromeDriverManager().install())
