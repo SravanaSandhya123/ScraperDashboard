@@ -1,11 +1,14 @@
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import pandas as pd
 import json
 from os import *
 from datetime import *
 from bs4 import BeautifulSoup
 import time
+import random
 import argparse
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -42,6 +45,25 @@ headers = {
     "sec-ch-ua-mobile": "?0",
     "sec-ch-ua-platform": '"Windows"'
 }
+
+# Robust session with retries/backoff
+def create_session() -> requests.Session:
+    session = requests.Session()
+    session.headers.update(headers)
+    # Retry on common transient errors and 429/5xx
+    retry = Retry(
+        total=5,
+        backoff_factor=1.0,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET", "POST"],
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry, pool_connections=10, pool_maxsize=10)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    return session
+
+SESSION = create_session()
 
 # Placeholder for valid states and cities
 # These should be scraped and replaced with actual data from the website
@@ -233,10 +255,18 @@ def fetch_bid_data(state, city, today, tommorrow):
 
         url = "https://bidplus.gem.gov.in/search-bids"
 
-        for attempt in range(2):  # Try max 2 times
+        for attempt in range(5):  # Try up to 5 times with backoff
             try:
-                time.sleep(1.5)
-                response = requests.post(url, headers=headers, cookies=cookies, data=payload, verify=False,timeout=5)
+                # Jittered polite delay + exponential backoff on retries
+                base_delay = 1.0
+                time.sleep(base_delay + random.uniform(0, 0.5) + (attempt * 0.5))
+                response = SESSION.post(
+                    url,
+                    cookies=cookies,
+                    data=payload,
+                    verify=False,
+                    timeout=(10, 45),  # connect, read
+                )
 
                 if response.status_code == 200:
                     response_data = response.json()
@@ -287,11 +317,13 @@ def fetch_bid_data(state, city, today, tommorrow):
 
                 else:
                     print(f"Attempt {attempt + 1}: Failed with status code {response.status_code}")
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                print(f"Attempt {attempt + 1}: Network error on page {pgno} - {str(e)}")
             except Exception as e:
                 print(f"Attempt {attempt + 1}: Exception occurred on page {pgno} - {str(e)}")
 
-            if attempt == 1:
-                print(f"Skipping page {pgno} after 2 failed attempts.")
+            if attempt == 4:
+                print(f"Skipping page {pgno} after 5 failed attempts.")
         pgno += 1
 
 # Main function to run the script
