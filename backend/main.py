@@ -57,16 +57,15 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",  # Frontend origin (like Vite or React dev server)
-        "http://localhost:3000",  # Alternative frontend port
-        "https://lavangam-app-us-west-2.s3-website-us-west-2.amazonaws.com",  # Your S3 frontend
-        "https://*.elasticbeanstalk.com",  # AWS Elastic Beanstalk
-        "https://*.amazonaws.com",  # AWS domains
-        "*"  # Allow all origins for now - you can restrict this later
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://44.244.35.65:3000",
+        "http://44.244.35.65",
+        "https://lavangam-app-us-west-2.s3-website-us-west-2.amazonaws.com",
     ],
     allow_credentials=True,
-    allow_methods=["*"],                      # Allow all methods: GET, POST, PUT, etc.
-    allow_headers=["*"],                      # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Include your routers
@@ -82,6 +81,11 @@ if admin_metrics_api:
     app.mount("/admin", admin_metrics_api.app)
 if analytics_api:
     app.mount("/analytics", analytics_api.app)
+
+@app.options('/api/open-chrome')
+async def options_open_chrome(_: Request):
+    # Explicit preflight support
+    return JSONResponse({}, status_code=200)
 
 @app.post('/api/open-chrome')
 async def open_chrome(request: Request):
@@ -109,6 +113,15 @@ async def open_chrome(request: Request):
         return JSONResponse({'status': 'success'}, status_code=200)
     except Exception as e:
         return JSONResponse({'error': f"Failed to open Chrome: {e}"}, status_code=500)
+
+# Backward compatibility: support old /api/open-edge endpoint and CORS preflight
+@app.options('/api/open-edge')
+async def options_open_edge(_: Request):
+    return JSONResponse({}, status_code=200)
+
+@app.post('/api/open-edge')
+async def open_edge_compat(request: Request):
+    return await open_chrome(request)
 
 @app.post("/api/ai-assistant")
 async def ai_assistant(request: Request):
