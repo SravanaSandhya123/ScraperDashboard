@@ -7,7 +7,14 @@ import subprocess
 import os
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
+# Allow all origins for Socket.IO, increase timeouts to be resilient over the internet
+socketio = SocketIO(
+    app,
+    cors_allowed_origins="*",
+    async_mode="eventlet",
+    ping_timeout=60,
+    ping_interval=25,
+)
 
 # Store scraping processes by run_id to allow multiple concurrent scraping
 scraping_processes = {}
@@ -157,4 +164,5 @@ def handle_start_eproc_scraping(data):
         scraping_process_eproc = None
 
 if __name__ == '__main__':
-    socketio.run(app, port=5003, debug=True) 
+    # Bind to all interfaces so remote clients can connect
+    socketio.run(app, host='0.0.0.0', port=5003, debug=True)
