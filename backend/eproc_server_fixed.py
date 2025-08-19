@@ -133,12 +133,34 @@ def store_merge_in_database(merge_record):
 pending_eproc_sessions = {}
 
 def build_advanced_search_url(base_url):
-    parsed = urlparse(base_url)
-    qs = parse_qs(parsed.query)
-    qs['page'] = ['FrontEndAdvancedSearch']
-    qs['service'] = ['page']
-    new_query = urlencode(qs, doseq=True)
-    return urlunparse(parsed._replace(query=new_query))
+    """Return a valid HTTPS URL pointing to the Advanced Search page.
+
+    - Adds https:// if scheme is missing
+    - Preserves existing query and appends required params
+    - Works whether the input is a full URL or a bare host/path
+    """
+    try:
+        if not base_url:
+            return None
+
+        # Ensure scheme present. If user passes like 'etenders.gov.in/...' add https://
+        if not base_url.lower().startswith(('http://', 'https://')):
+            base_url = 'https://' + base_url.lstrip('/')
+
+        parsed = urlparse(base_url)
+
+        # If netloc is still empty (e.g., malformed input), bail out
+        if not parsed.netloc:
+            return None
+
+        # Merge/override query params
+        existing_qs = parse_qs(parsed.query)
+        existing_qs['page'] = ['FrontEndAdvancedSearch']
+        existing_qs['service'] = ['page']
+        new_query = urlencode(existing_qs, doseq=True)
+        return urlunparse(parsed._replace(query=new_query))
+    except Exception:
+        return None
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
