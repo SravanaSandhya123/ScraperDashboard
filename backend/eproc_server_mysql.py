@@ -193,15 +193,23 @@ def open_edge():
         url = build_advanced_search_url(data.get('url', ''))
         print(f"[DEBUG] Final Edge URL: {url}")
 
-        edge_driver_path = r'D:\lavangam\lavangam\backend\scrapers\edgedriver_win64\msedgedriver.exe'
-        if not os.path.exists(edge_driver_path):
-            return jsonify({'error': 'Edge WebDriver not found!'}), 500
-
+        # Robust Edge driver resolution: Selenium Manager -> webdriver-manager -> bundled
         options = Options()
-        # options.add_argument('--user-data-dir=...')  # Optional: use a persistent profile
-
-        service = Service(executable_path=edge_driver_path)
-        bot = webdriver.Edge(service=service, options=options)
+        bot = None
+        try:
+            bot = webdriver.Edge(options=options)
+        except Exception as sm_err:
+            print(f"[DEBUG] Selenium Manager failed: {sm_err}")
+            try:
+                from webdriver_manager.microsoft import EdgeChromiumDriverManager
+                managed_path = EdgeChromiumDriverManager().install()
+                service = Service(executable_path=managed_path)
+                bot = webdriver.Edge(service=service, options=options)
+            except Exception as wdm_err:
+                print(f"[DEBUG] webdriver-manager failed: {wdm_err}")
+                edge_driver_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scrapers', 'edgedriver_win64', 'msedgedriver.exe')
+                service = Service(executable_path=edge_driver_path)
+                bot = webdriver.Edge(service=service, options=options)
         print(f"[DEBUG] Navigating Edge to: {url}")
         bot.get(url)
 

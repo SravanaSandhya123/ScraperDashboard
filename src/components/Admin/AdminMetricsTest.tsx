@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { getApiUrl } from '../../config/api';
 
 interface AdminMetrics {
   system_load: {
@@ -29,10 +30,8 @@ const AdminMetricsTest: React.FC = () => {
         setLoading(true);
         setError('');
         
-        // Use admin metrics API on port 8001
-        const API_BASE_URL = window.location.hostname === 'localhost' 
-          ? 'http://localhost:8001'
-          : 'https://lavangam-minimal-backend-env.eba-22qprjmg.us-east-1.elasticbeanstalk.com';
+        // Use centralized admin metrics API on port 8001
+        const API_BASE_URL = getApiUrl('admin');
         
         const response = await axios.get<AdminMetrics>(`${API_BASE_URL}/admin-metrics`);
         setMetrics(response.data);

@@ -52,7 +52,7 @@ Write-Host ""
 
 Write-Host "STEP 5: Verify deployment" -ForegroundColor Yellow
 Write-Host "python3 check_services.py" -ForegroundColor White
-Write-Host "curl http://localhost:8000/health" -ForegroundColor White
+Write-Host "curl http://44.244.35.65:8000/health" -ForegroundColor White
 Write-Host ""
 
 Write-Host "After deployment, your backend will be available at:" -ForegroundColor Cyan

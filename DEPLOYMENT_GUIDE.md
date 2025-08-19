@@ -154,7 +154,7 @@ sudo systemctl restart lavangam-backend
 4. **Test Endpoints**:
    ```bash
    python3 check_services.py
-   curl http://localhost:8000/health
+   curl http://44.244.35.65:8000/health
    ```
 
 5. **Update Frontend**:

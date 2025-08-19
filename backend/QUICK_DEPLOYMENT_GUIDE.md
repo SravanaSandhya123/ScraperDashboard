@@ -250,8 +250,8 @@ sudo journalctl -u lavangam-main-api -f
 sudo tail -f /var/log/nginx/access.log
 
 # Health checks
-curl http://localhost:8000/health
-curl http://localhost:5024/api/system-usage
+curl http://44.244.35.65:8000/health
+curl http://44.244.35.65:5024/api/system-usage
 
 # Performance monitoring
 htop
@@ -262,7 +262,7 @@ nethogs
 ### Getting Help
 
 1. Check service logs: `sudo journalctl -u lavangam-* -f`
-2. Verify network connectivity: `curl http://localhost:8000/health`
+2. Verify network connectivity: `curl http://44.244.35.65:8000/health`
 3. Check system resources: `htop`, `df -h`
 4. Review security group settings in AWS Console
 5. Check CloudWatch logs (if enabled)

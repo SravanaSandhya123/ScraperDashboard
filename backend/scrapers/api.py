@@ -103,13 +103,23 @@ def test_edge_launch():
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     PATH = os.path.join(BASE_DIR, "edgedriver_win64", "msedgedriver.exe")
     print(f"[DEBUG] Checking for EdgeDriver at: {PATH}")
-    if not os.path.exists(PATH):
-        print(f"[ERROR] EdgeDriver not found at {PATH}")
-        return JSONResponse(status_code=500, content={"error": f"EdgeDriver not found at {PATH}"})
     try:
         print("[DEBUG] Attempting to launch Edge browser for test...")
-        servicee = Service(executable_path=PATH)
-        bot = webdriver.Edge(service=servicee, options=options)
+        # Prefer Selenium Manager
+        bot = None
+        try:
+            bot = webdriver.Edge(options=options)
+        except Exception as sm_err:
+            print(f"[DEBUG] Selenium Manager failed: {sm_err}")
+            try:
+                from webdriver_manager.microsoft import EdgeChromiumDriverManager
+                managed_path = EdgeChromiumDriverManager().install()
+                servicee = Service(executable_path=managed_path)
+                bot = webdriver.Edge(service=servicee, options=options)
+            except Exception as wdm_err:
+                print(f"[DEBUG] webdriver-manager failed: {wdm_err}")
+                servicee = Service(executable_path=PATH)
+                bot = webdriver.Edge(service=servicee, options=options)
         print("[DEBUG] Edge browser should be opening now (test)...")
         bot.get("https://www.google.com")
         print("[DEBUG] Edge browser navigated to Google (test).")
@@ -137,8 +147,20 @@ def start_scraping(
     else:
         print(f"[DEBUG] EdgeDriver found at {PATH}")
     print("[DEBUG] Attempting to launch Edge browser...")
-    servicee = Service(executable_path=PATH)
-    bot = webdriver.Edge(service=servicee, options=options)
+    bot = None
+    try:
+        bot = webdriver.Edge(options=options)
+    except Exception as sm_err:
+        print(f"[DEBUG] Selenium Manager failed: {sm_err}")
+        try:
+            from webdriver_manager.microsoft import EdgeChromiumDriverManager
+            managed_path = EdgeChromiumDriverManager().install()
+            servicee = Service(executable_path=managed_path)
+            bot = webdriver.Edge(service=servicee, options=options)
+        except Exception as wdm_err:
+            print(f"[DEBUG] webdriver-manager failed: {wdm_err}")
+            servicee = Service(executable_path=PATH)
+            bot = webdriver.Edge(service=servicee, options=options)
     print("[DEBUG] Edge browser should be opening now...")
     bot.get(base_url + "?page=FrontEndAdvancedSearch&service=page")
     print("[DEBUG] Edge browser navigated to URL.")

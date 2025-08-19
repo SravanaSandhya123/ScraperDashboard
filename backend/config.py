@@ -18,8 +18,8 @@ OUTPUT_BASE_DIR = BASE_DIR / 'outputs' / 'eproc'
 SCRAPER_OUTPUT_DIR = BASE_DIR / 'scrapers' / 'OUTPUT'
 DOWNLOAD_DIR = SCRAPER_OUTPUT_DIR / 'Downloaded_Documents'
 
-# Edge driver configuration
-EDGE_DRIVER_PATH = BASE_DIR / 'scrapers' / 'edgedriver_win64' / 'msedgedriver.exe'
+# Chrome driver configuration (using webdriver-manager)
+CHROME_DRIVER_MANAGER = True
 
 # Scraping configuration
 TIMEOUT = 6
@@ -69,7 +69,7 @@ ERROR_MESSAGES = {
     'invalid_tender_type': 'Invalid tender type. Use "O" for Open or "L" for Limited',
     'invalid_days_interval': 'Days interval must be a positive integer',
     'invalid_start_page': 'Start page must be a positive integer',
-    'edge_driver_not_found': 'Edge driver not found',
+    'chrome_driver_not_found': 'Chrome driver not found',
     'browser_error': 'Failed to start browser',
     'captcha_required': 'Captcha is required',
     'scraping_failed': 'Scraping failed',
@@ -79,7 +79,7 @@ ERROR_MESSAGES = {
 
 # Success messages
 SUCCESS_MESSAGES = {
-    'edge_opened': 'Edge browser opened successfully',
+    'chrome_opened': 'Chrome browser opened successfully',
     'scraping_started': 'Scraping started successfully',
     'scraping_completed': 'Scraping completed successfully',
     'scraping_stopped': 'Scraping stopped successfully',
@@ -148,9 +148,8 @@ def validate_config():
     """Validate configuration settings"""
     errors = []
     
-    # Check if Edge driver exists
-    if not EDGE_DRIVER_PATH.exists():
-        errors.append(f"Edge driver not found at: {EDGE_DRIVER_PATH}")
+    # Chrome driver is managed by webdriver-manager, no need to check local path
+    pass
     
     # Validate port range
     if not (1024 <= SERVER_PORT <= 65535):

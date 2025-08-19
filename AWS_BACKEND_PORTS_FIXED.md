@@ -2,11 +2,11 @@
 
 ## ✅ **What Was Fixed**
 
-Your backend ports have been **completely updated** to use your AWS IP address `18.236.173.88` instead of localhost. Here's what was changed:
+Your backend ports have been **completely updated** to use your AWS IP address `44.244.35.65` instead of localhost. Here's what was changed:
 
 ### **1. Frontend Configuration Updated**
 - **File**: `src/config/api.ts`
-- **Changes**: All API URLs now point to `18.236.173.88` instead of old IP
+- **Changes**: All API URLs now point to `44.244.35.65` instead of old IP
 - **Result**: Your React app will automatically connect to AWS when not on localhost
 
 ### **2. Backend Configuration Updated**
@@ -39,19 +39,19 @@ Your backend ports have been **completely updated** to use your AWS IP address `
 
 ### **Before (Localhost):**
 ```
-http://localhost:8000  → Main API
-http://localhost:5022  → Scrapers API  
-http://localhost:5024  → System Usage API
-http://localhost:8004  → Dashboard API
-http://localhost:8001  → Analytics API
-http://localhost:8002  → Additional Analytics
-http://localhost:5025  → Admin Metrics API
-http://localhost:5020  → E-Procurement WebSocket
-http://localhost:5021  → E-Procurement Server
-http://localhost:5023  → E-Procurement Fixed
-http://localhost:5001  → File Manager
-http://localhost:5002  → Export Server
-http://localhost:5005  → E-Procurement API
+http://44.244.35.65:8000  → Main API
+http://44.244.35.65:5022  → Scrapers API  
+http://44.244.35.65:5024  → System Usage API
+http://44.244.35.65:8004  → Dashboard API
+http://44.244.35.65:8001  → Analytics API
+http://44.244.35.65:8002  → Additional Analytics
+http://44.244.35.65:5025  → Admin Metrics API
+http://44.244.35.65:5020  → E-Procurement WebSocket
+http://44.244.35.65:5021  → E-Procurement Server
+http://44.244.35.65:5023  → E-Procurement Fixed
+http://44.244.35.65:5001  → File Manager
+http://44.244.35.65:5002  → Export Server
+http://44.244.35.65:5005  → E-Procurement API
 ```
 
 ### **After (AWS - 18.236.173.88):**
@@ -112,8 +112,8 @@ curl http://18.236.173.88:5024/health
 ## 📱 **Mobile and External Access**
 
 ### **Before (Local Development):**
-- ❌ Mobile can't access `localhost:8000`
-- ❌ Mobile can't access `127.0.0.1:5022`
+- ❌ Mobile can't access `44.244.35.65:8000`
+- ❌ Mobile can't access `44.244.35.65:5022`
 - ❌ External devices can't connect
 
 ### **After (AWS Deployment):**
@@ -174,7 +174,7 @@ curl http://18.236.173.88:5024/health
 
 **Your Lavangam backend is now completely configured for AWS deployment!**
 
-- ✅ **All 13 backend ports** mapped to AWS IP `18.236.173.88`
+- ✅ **All 13 backend ports** mapped to AWS IP `44.244.35.65`
 - ✅ **Frontend automatically detects** AWS vs localhost
 - ✅ **Security group scripts** ready for deployment
 - ✅ **Complete documentation** for all port mappings

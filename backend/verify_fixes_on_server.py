@@ -134,7 +134,7 @@ def test_admin_metrics_api():
     print("\n🔍 Testing admin metrics API...")
     try:
         # Test health endpoint
-        response = requests.get("http://localhost:8001/health", timeout=5)
+        response = requests.get("http://44.244.35.65:8001/health", timeout=5)
         if response.status_code == 200:
             print("✅ Health endpoint working")
         else:
@@ -142,7 +142,7 @@ def test_admin_metrics_api():
             return False
         
         # Test real-time system resources
-        response = requests.get("http://localhost:8001/system-resources-realtime", timeout=5)
+        response = requests.get("http://44.244.35.65:8001/system-resources-realtime", timeout=5)
         if response.status_code == 200:
             print("✅ Real-time system resources working")
             data = response.json()
@@ -154,7 +154,7 @@ def test_admin_metrics_api():
             return False
         
         # Test admin metrics endpoint
-        response = requests.get("http://localhost:8001/admin-metrics", timeout=10)
+        response = requests.get("http://44.244.35.65:8001/admin-metrics", timeout=10)
         if response.status_code == 200:
             print("✅ Admin metrics endpoint working")
             data = response.json()

@@ -106,7 +106,7 @@ def test_database_connection():
 def start_server():
     """Start the complete fix server"""
     print("\n🚀 Starting E-Procurement Server - Complete Fix...")
-    print("📍 Server will be available at: http://localhost:5000")
+    print("📍 Server will be available at: http://44.244.35.65:5000")
     print("=" * 60)
     
     try:
@@ -147,9 +147,9 @@ def show_usage_instructions():
     print("\n2. Test database connection:")
     print("   python database_config_fixed.py")
     print("\n3. Check server health:")
-    print("   curl http://localhost:5000/api/health")
+    print("   curl http://44.244.35.65:5000/api/health")
     print("\n4. Check database status:")
-    print("   curl http://localhost:5000/api/database-status")
+    print("   curl http://44.244.35.65:5000/api/database-status")
 
 if __name__ == "__main__":
     print("=" * 60)

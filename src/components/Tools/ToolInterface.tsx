@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Play, Square, Download, Trash2, FileText, Merge } from 'lucide-react';
 import { Tool } from '../../types';
 import io, { Socket } from 'socket.io-client';
+import { API_CONFIG, getApiUrl, getWsUrl } from '../../config/api';
 import { useToolState } from '../../contexts/ToolStateContext';
 import { GemToolState } from '../../contexts/ToolStateContext';
 // import { useGemTool } from '../../contexts/GemToolContext';
@@ -224,8 +225,8 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
   const [eSocket, setESocket] = useState<any>(null);
 
   // Backend configuration
-  const BACKEND_URL = 'http://localhost:5023';
-  const WS_URL = 'ws://localhost:5023';
+  const BACKEND_URL = getApiUrl('eproc');
+  const WS_URL = getWsUrl('scraper');
 
   useEffect(() => {
     if (tool.name === 'gem' && tool.inputs) {
@@ -445,7 +446,7 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
     if (state.isRunning && state.runId) {
       pollInterval = setInterval(async () => {
         try {
-          const response = await fetch(`http://127.0.0.1:5002/api/files/${state.runId}`);
+          const response = await fetch(`${API_CONFIG.FILE_MANAGER_API}/api/files/${state.runId}`);
           if (response.ok) {
             const files = await response.json();
             setState((prev: any) => ({
@@ -637,7 +638,8 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
         setOpenChromeLoading(false);
         return;
       }
-      const res = await fetch('http://127.0.0.1:5022/ireps/open-edge', {
+      // Call the E-Procurement Fixed service (port 5023) to open Chrome
+      const res = await fetch(`http://44.244.35.65:5023/api/open-chrome`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, starting_page: parseInt(startingPage) })
@@ -739,7 +741,7 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
         
         console.log('IREPS payload:', irepsPayload);
         
-        const response = await fetch('http://127.0.0.1:5022/ireps/start-scraping', {
+        const response = await fetch(`${API_CONFIG.SCRAPERS_API}/ireps/start-scraping`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(irepsPayload)
@@ -753,7 +755,7 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
           // Set up polling for output files
           const pollInterval = setInterval(async () => {
             try {
-              const filesResponse = await fetch(`http://127.0.0.1:5022/ireps/files?session_id=${irepsSessionId}`);
+              const filesResponse = await fetch(`${API_CONFIG.SCRAPERS_API}/ireps/files?session_id=${irepsSessionId}`);
               if (filesResponse.ok) {
                 const filesData = await filesResponse.json();
                 setState(prev => ({ ...prev, outputFiles: filesData.files || [] }));
@@ -799,7 +801,7 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
     
     // Create separate WebSocket connection for this state
     console.log(`Connecting to WebSocket server for state: ${state.selectedState}...`);
-    const sock = io('http://127.0.0.1:5003');
+    const sock = io(getWsUrl('scraper'));
     
     // Add connection event handlers for debugging
     sock.on('connect', () => {
@@ -937,7 +939,7 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
     // Special handling for IREPS
     if (tool.name === 'IREPS' && irepsSessionId) {
       try {
-        const response = await fetch('http://127.0.0.1:5022/ireps/stop-session', {
+        const response = await fetch(`${API_CONFIG.SCRAPERS_API}/ireps/stop-session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ session_id: irepsSessionId })
@@ -1009,7 +1011,7 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
       }
       // Send stop request to backend
       try {
-        await fetch('http://127.0.0.1:5003/api/stop-scraping', { method: 'POST' });
+        await fetch(`${getWsUrl('scraper')}/api/stop-scraping`, { method: 'POST' });
         setState(prev => ({ ...prev, stopMessage: 'Scraping stopped.' }));
       } catch (error) {
         setState(prev => ({ ...prev, stopMessage: 'Failed to stop scraping.' }));
@@ -1027,13 +1029,13 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
       try {
         let res;
         if (tool.name === 'IREPS' && irepsSessionId) {
-          res = await fetch(`http://127.0.0.1:5022/ireps/delete-file`, {
+          res = await fetch(`${API_CONFIG.SCRAPERS_API}/ireps/delete-file`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ session_id: irepsSessionId, filename })
           });
         } else {
-          res = await fetch(`http://127.0.0.1:5002/api/delete/${state.runId}/${filename}`, {
+          res = await fetch(`${API_CONFIG.FILE_MANAGER_API}/api/delete/${state.runId}/${filename}`, {
             method: 'DELETE',
           });
         }
@@ -1076,8 +1078,8 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
       // Use different endpoints for IREPS vs other tools
       const isIreps = tool.name === 'IREPS';
       const endpoint = isIreps 
-        ? `http://127.0.0.1:5022/ireps/merge-download/${irepsSessionId}`
-        : `http://127.0.0.1:5002/api/merge-download/${runId}`;
+        ? `${API_CONFIG.SCRAPERS_API}/ireps/merge-download/${irepsSessionId}`
+        : `${API_CONFIG.FILE_MANAGER_API}/api/merge-download/${runId}`;
       
       const res = await fetch(endpoint);
       if (res.ok) {
@@ -1086,13 +1088,13 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
         
         // Refresh the file list immediately after merge completes
         if (isIreps) {
-          const filesRes = await fetch(`http://127.0.0.1:5022/ireps/files?session_id=${irepsSessionId}`);
+          const filesRes = await fetch(`${API_CONFIG.SCRAPERS_API}/ireps/files?session_id=${irepsSessionId}`);
           if (filesRes.ok) {
             const filesData = await filesRes.json();
             setState(prev => ({ ...prev, outputFiles: filesData.files || [] }));
           }
         } else {
-          const filesRes = await fetch(`http://127.0.0.1:5002/api/files/${runId}`);
+          const filesRes = await fetch(`${API_CONFIG.FILE_MANAGER_API}/api/files/${runId}`);
           if (filesRes.ok) {
             const files = await filesRes.json();
             // Update files in the currently active state's jobData
@@ -1231,7 +1233,7 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
   // IREPS WebSocket setup for live logs
   useEffect(() => {
     if (tool.name === 'IREPS') {
-      const ws = new WebSocket('ws://127.0.0.1:5022/ws/logs');
+      const ws = new WebSocket(getWsUrl('scrapersLog'));
       
       ws.onopen = () => {
         console.log('✅ Connected to IREPS WebSocket for live logs');
@@ -1356,9 +1358,9 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
     setEIsRunning(true);
     try {
       console.log('[DEBUG] Sending URL to backend:', eBaseUrl);
-      console.log('[DEBUG] Backend URL:', `${BACKEND_URL}/api/open-edge`);
+      console.log('[DEBUG] Backend URL:', `http://44.244.35.65:8000/api/open-edge`);
       
-      const res = await fetch(`${BACKEND_URL}/api/open-edge`, {
+      const res = await fetch(`http://44.244.35.65:8000/api/open-edge`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: eBaseUrl })
@@ -1410,7 +1412,7 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
     
     const newRun: EProcRun = {
       id: runId,
-      sessionId: eCurrentSessionId, // Use the existing session ID from Open Edge
+      sessionId: eCurrentSessionId, // Use the existing session ID from Open Chrome
       baseUrl: eBaseUrl,
       tenderType: eTenderType,
       daysInterval: eDaysInterval,
@@ -1755,14 +1757,14 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
     if (!state.runId) return;
     setState(prev => ({ ...prev, log: prev.log + `\n${getTimestamp()} K-Merging Karnataka files...\n` }));
     try {
-              const res = await fetch(`http://127.0.0.1:5022/ireps/kmerge-files`, {
+      const res = await fetch(`${API_CONFIG.SCRAPERS_API}/ireps/kmerge-files`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: state.runId })
       });
       if (res.ok) {
         setState(prev => ({ ...prev, log: prev.log + `\n${getTimestamp()} Karnataka files merged into: karnataka_merged_${state.runId}.xlsx\n` }));
-        const filesRes = await fetch(`http://127.0.0.1:5002/api/files/${state.runId}`);
+        const filesRes = await fetch(`${API_CONFIG.FILE_MANAGER_API}/api/files/${state.runId}`);
         if (filesRes.ok) {
           const files = await filesRes.json();
           setState(prev => ({ ...prev, outputFiles: files }));
@@ -1903,7 +1905,7 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
                 disabled={!eBaseUrl || eIsRunning}
                 type="button"
               >
-                Open Edge
+                Open Chrome
               </button>
             </div>
             <p className="text-xs text-gray-400 mt-1">
@@ -1981,7 +1983,7 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
             <h4 className="text-blue-400 font-semibold mb-2">Instructions:</h4>
             <ol className="text-blue-300 text-sm space-y-1">
               <li>1. Enter the E-Procurement website URL</li>
-              <li>2. Click "Open Edge" to open the website in Edge browser</li>
+              <li>2. Click "Open Chrome" to open the website in Chrome browser</li>
               <li>3. Fill in all the required fields above</li>
               <li>4. Enter the captcha from the website</li>
               <li>5. Click "Start Scraping" to begin the process</li>
@@ -2027,7 +2029,7 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
             <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3">
               <div className="text-yellow-400 text-sm">
                 {!edgeOpened || !eCurrentSessionId 
-                  ? "⚠️ Please click 'Open Edge' first to establish a browser session."
+                  ? "⚠️ Please click 'Open Chrome' first to establish a browser session."
                   : !isAllFieldsFilled 
                     ? "⚠️ Please fill in all required fields before starting scraping."
                     : "⚠️ Please complete all required steps before starting scraping."
@@ -2436,7 +2438,7 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
                 onClick={async () => {
                   if (state.runId) {
                     try {
-                      const response = await fetch(`http://127.0.0.1:5002/api/files/${state.runId}`);
+                      const response = await fetch(`${API_CONFIG.FILE_MANAGER_API}/api/files/${state.runId}`);
                       if (response.ok) {
                         const files = await response.json();
                         setState((prev: any) => ({ ...prev, outputFiles: files }));
@@ -2514,9 +2516,9 @@ const FileCard: React.FC<{ file: string; runId: string; setLog: (fn: (prev: any)
   
   const downloadUrl = React.useMemo(() => {
     if (isIreps && irepsSessionId) {
-      return `http://127.0.0.1:5022/ireps/download/${irepsSessionId}/${filename}`;
+      return `${API_CONFIG.SCRAPERS_API}/ireps/download/${irepsSessionId}/${filename}`;
     } else {
-      return `http://127.0.0.1:5002/api/download/${runId}/${filename}`;
+      return `${API_CONFIG.FILE_MANAGER_API}/api/download/${runId}/${filename}`;
     }
   }, [isIreps, irepsSessionId, runId, filename]);
   

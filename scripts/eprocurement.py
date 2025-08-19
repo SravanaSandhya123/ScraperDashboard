@@ -2,8 +2,8 @@
 import os
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager as CM
-from selenium.webdriver.edge.service import Service
-from selenium.webdriver.edge.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -464,11 +464,9 @@ def start():
     options.add_experimental_option(
         "prefs", prefs
     )
-    PATH=BASE_DIR+"\\edgedriver_win64\\msedgedriver.exe"
-    chromedriver_path = PATH
-    servicee = Service(executable_path=chromedriver_path)
-    #bot = webdriver.Chrome(service=Service(CM().install()), options=options)
-    bot = webdriver.Edge(service=servicee,options=options)
+    # Use Chrome WebDriver Manager to automatically download and manage Chrome driver
+    servicee = Service(CM().install())
+    bot = webdriver.Chrome(service=servicee, options=options)
     bot.minimize_window()
     bot.get(URL)
 

@@ -13,8 +13,10 @@ import shutil
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 import uuid
 from selenium import webdriver
-from selenium.webdriver.edge.service import Service
-from selenium.webdriver.edge.options import Options
+# Chrome imports for Chrome-based launch
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from webdriver_manager.chrome import ChromeDriverManager
 from scrapers.search import run_eproc_scraper_with_bot
 from database_operations_mysql import EProcurementDBMySQL
 
@@ -188,36 +190,40 @@ def test_url():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/open-edge', methods=['POST'])
-def open_edge():
+@app.route('/api/open-chrome', methods=['POST'])
+def open_chrome():
     try:
         data = request.get_json()
         url = build_advanced_search_url(data.get('url', ''))
-        print(f"[DEBUG] Final Edge URL: {url}")
+        print(f"[DEBUG] Final Chrome URL: {url}")
 
-        edge_driver_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scrapers', 'edgedriver_win64', 'msedgedriver.exe')
-        print(f"[DEBUG] Checking Edge WebDriver at: {edge_driver_path}")
-        print(f"[DEBUG] Edge WebDriver exists: {os.path.exists(edge_driver_path)}")
-        if not os.path.exists(edge_driver_path):
-            return jsonify({'error': f'Edge WebDriver not found at {edge_driver_path}'}), 500
+        # Chrome options with unique user-data-dir to avoid profile lock conflicts
+        options = ChromeOptions()
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+        # Use a unique user-data-dir per session to avoid profile lock conflicts
+        import tempfile
+        user_data_dir = tempfile.mkdtemp(prefix="chrome-profile-")
+        options.add_argument(f"--user-data-dir={user_data_dir}")
 
-        options = Options()
-        # options.add_argument('--user-data-dir=...')  # Optional: use a persistent profile
-
-        service = Service(executable_path=edge_driver_path)
-        bot = webdriver.Edge(service=service, options=options)
-        print(f"[DEBUG] Navigating Edge to: {url}")
+        # Setup Chrome driver via webdriver-manager
+        service = ChromeService(ChromeDriverManager().install())
+        bot = webdriver.Chrome(service=service, options=options)
+        print(f"[DEBUG] Navigating Chrome to: {url}")
         bot.get(url)
 
         session_id = str(uuid.uuid4())
         pending_eproc_sessions[session_id] = bot
-        print(f"[DEBUG] Edge opened, session_id: {session_id}")
+        print(f"[DEBUG] Chrome opened, session_id: {session_id}")
         print(f"[DEBUG] Total sessions after creation: {len(pending_eproc_sessions)}")
         print(f"[DEBUG] Available sessions: {list(pending_eproc_sessions.keys())}")
-        return jsonify({'message': 'Edge opened successfully', 'session_id': session_id, 'url': url}), 200
+        return jsonify({'message': 'Chrome opened successfully', 'session_id': session_id, 'url': url}), 200
     except Exception as e:
-        print(f"[ERROR] Failed to open Edge: {e}")
-        return jsonify({'error': f'Failed to open Edge: {e}'}), 500
+        print(f"[ERROR] Failed to open Chrome: {e}")
+        return jsonify({'error': f'Failed to open Chrome: {e}'}), 500
+
+
 
 @app.route('/api/start-eproc-scraping', methods=['POST'])
 def start_eproc_scraping():
@@ -225,7 +231,7 @@ def start_eproc_scraping():
         data = request.get_json()
         session_id = data.get('session_id')
         if not session_id:
-            return jsonify({'error': 'Session ID is required. Please open Edge first.'}), 400
+            return jsonify({'error': 'Session ID is required. Please open Chrome first.'}), 400
         
         # Debug logging
         print(f"[DEBUG] Looking for session_id: {session_id}")
@@ -234,8 +240,8 @@ def start_eproc_scraping():
         
         bot = pending_eproc_sessions.get(session_id)
         if not bot:
-            return jsonify({'error': 'Session not found. Please open Edge first.'}), 400
-        print(f"[DEBUG] Using existing Edge session: {session_id}")
+            return jsonify({'error': 'Session not found. Please open Chrome first.'}), 400
+        print(f"[DEBUG] Using existing Chrome session: {session_id}")
         url = build_advanced_search_url(data.get('base_url', ''))
         print(f"[DEBUG] Start scraping with URL: {url}")
 
@@ -508,7 +514,7 @@ def move_generated_files(session_id):
 
 @app.route('/api/stop-scraping', methods=['POST'])
 def stop_scraping():
-    """Stop the current scraping process and close Edge browser"""
+    """Stop the current scraping process and close Chrome browser"""
     global scraping_active, current_session_id
     try:
         data = request.get_json()
@@ -519,21 +525,21 @@ def stop_scraping():
         stop_flags[session_id] = True
         print(f"[DEBUG] Stop flag set for session: {session_id}")
         
-        # Check if there's an active Edge browser session
+        # Check if there's an active Chrome browser session
         bot = pending_eproc_sessions.get(session_id)
         if bot:
-            print(f"[DEBUG] Found Edge browser session: {session_id}, closing browser...")
+            print(f"[DEBUG] Found Chrome browser session: {session_id}, closing browser...")
             try:
-                # Close the Edge browser
+                # Close the Chrome browser
                 bot.quit()
-                print(f"[DEBUG] Edge browser closed for session: {session_id}")
+                print(f"[DEBUG] Chrome browser closed for session: {session_id}")
                 
                 # Remove session from pending sessions
                 del pending_eproc_sessions[session_id]
                 print(f"[DEBUG] Session removed from pending_eproc_sessions: {session_id}")
                 
             except Exception as e:
-                print(f"[ERROR] Failed to close Edge browser for session {session_id}: {e}")
+                print(f"[ERROR] Failed to close Chrome browser for session {session_id}: {e}")
                 # Still remove the session even if browser close fails
                 pending_eproc_sessions.pop(session_id, None)
         

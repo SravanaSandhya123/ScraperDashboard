@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
+import { getApiUrl } from '../../config/api';
 import { useAnimation } from '../../contexts/AnimationContext';
 import dayjs from 'dayjs';
 import SystemUsageChart from '../SystemUsageChart';
@@ -68,10 +69,8 @@ export const AdminPanel: React.FC = () => {
     try {
       // Add timestamp to prevent caching
       const timestamp = new Date().getTime();
-      // Use admin metrics API on port 8001
-      const API_BASE_URL = window.location.hostname === 'localhost' 
-        ? 'http://localhost:8001'
-        : 'http://44.244.61.85:8001';
+      // Use centralized admin metrics API (port 8001)
+      const API_BASE_URL = getApiUrl('admin');
       
       // Use timeout to prevent hanging requests
       const controller = new AbortController();
@@ -118,10 +117,8 @@ export const AdminPanel: React.FC = () => {
     // Initial connection test in background
     const testConnection = async () => {
       try {
-        // Use dynamic URL based on environment
-        const API_BASE_URL = window.location.hostname === 'localhost' 
-          ? 'http://localhost:8001'
-          : 'http://44.244.61.85:8001';
+        // Use centralized admin metrics API
+        const API_BASE_URL = getApiUrl('admin');
         const response = await axios.get(`${API_BASE_URL}/test`, { timeout: 3000 });
         console.log('✅ API connection test successful:', response.data);
       } catch (err) {

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
+import { getWsUrl } from '../../config/api';
 
 export const GemLiveLogViewer: React.FC = () => {
   const [logs, setLogs] = useState<string[]>([]);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const socket = io("http://127.0.0.1:5003");
+    const socket = io(getWsUrl('scraper'));
 
     socket.on("scraping_output", (data: any) => {
       setLogs((prev) => [...prev, data.output]);

@@ -152,8 +152,8 @@ mysql -u root -p Toolinformation -e "SHOW TABLES;"
 python verify_fixes_on_server.py
 
 # Test admin metrics API
-curl http://localhost:8001/health
-curl http://localhost:8001/system-resources-realtime
+curl http://44.244.35.65:8001/health
+curl http://44.244.35.65:8001/system-resources-realtime
 ```
 
 ### From Local Machine:

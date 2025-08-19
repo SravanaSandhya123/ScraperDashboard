@@ -13,8 +13,9 @@ import shutil
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 import uuid
 from selenium import webdriver
-from selenium.webdriver.edge.service import Service
-from selenium.webdriver.edge.options import Options
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from webdriver_manager.chrome import ChromeDriverManager
 from scrapers.search import run_eproc_scraper_with_bot
 
 app = Flask(__name__)
@@ -90,9 +91,9 @@ def health_check():
         'active_sessions': len(pending_eproc_sessions)
     })
 
-@app.route('/api/open-edge', methods=['POST'])
-def open_edge():
-    """Opens Edge with Selenium and returns a session ID"""
+@app.route('/api/open-chrome', methods=['POST'])
+def open_chrome():
+    """Opens Chrome with Selenium and returns a session ID"""
     try:
         data = request.get_json()
         base_url = data.get('url', '')
@@ -103,33 +104,34 @@ def open_edge():
         if not url:
             return jsonify({'error': 'Invalid URL provided'}), 400
         
-        print(f"[DEBUG] Final Edge URL: {url}")
+        print(f"[DEBUG] Final Chrome URL: {url}")
 
-        # Path to your msedgedriver
-        edge_driver_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scrapers', 'edgedriver_win64', 'msedgedriver.exe')
-        print(f"[DEBUG] Checking Edge WebDriver at: {edge_driver_path}")
-        print(f"[DEBUG] Edge WebDriver exists: {os.path.exists(edge_driver_path)}")
-        if not os.path.exists(edge_driver_path):
-            return jsonify({'error': f'Edge WebDriver not found at {edge_driver_path}'}), 500
-        
-        options = Options()
-        # Add any options you need, e.g., options.add_argument('--headless')
-        service = Service(executable_path=edge_driver_path)
-        
-        bot = webdriver.Edge(service=service, options=options)
-        print(f"[DEBUG] Navigating Edge to: {url}")
+        # Chrome options with unique user-data-dir to avoid profile lock conflicts
+        options = ChromeOptions()
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+        # Use a unique user-data-dir per session to avoid profile lock conflicts
+        import tempfile
+        user_data_dir = tempfile.mkdtemp(prefix="chrome-profile-")
+        options.add_argument(f"--user-data-dir={user_data_dir}")
+
+        # Setup Chrome driver via webdriver-manager
+        service = ChromeService(ChromeDriverManager().install())
+        bot = webdriver.Chrome(service=service, options=options)
+        print(f"[DEBUG] Navigating Chrome to: {url}")
         bot.get(url)
         
         # Generate a unique session ID and store the bot instance
         session_id = str(uuid.uuid4())
         pending_eproc_sessions[session_id] = bot
-        print(f"[DEBUG] Edge opened, session_id: {session_id}")
+        print(f"[DEBUG] Chrome opened, session_id: {session_id}")
 
-        return jsonify({'message': 'Edge opened successfully', 'session_id': session_id, 'url': url}), 200
+        return jsonify({'message': 'Chrome opened successfully', 'session_id': session_id, 'url': url}), 200
         
     except Exception as e:
-        print(f"[ERROR] Failed to open Edge: {e}")
-        return jsonify({'error': f'Failed to open Edge: {str(e)}'}), 500
+        print(f"[ERROR] Failed to open Chrome: {e}")
+        return jsonify({'error': f'Failed to open Chrome: {str(e)}'}), 500
 
 @app.route('/api/start-eproc-scraping', methods=['POST'])
 def start_eproc_scraping():

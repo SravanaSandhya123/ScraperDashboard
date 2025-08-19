@@ -38,7 +38,7 @@ Your frontend is already configured to detect Render domains. Update the API URL
 ```typescript
 // Replace with your actual Render backend URL
 MAIN_API: window.location.hostname === 'localhost' 
-  ? 'http://localhost:8000'
+  ? 'http://44.244.35.65:8000'
   : window.location.hostname.includes('render.com')
   ? 'https://your-backend-service.onrender.com'  // ← Your backend URL
   : 'http://18.236.173.88:8000'
@@ -130,10 +130,10 @@ The build script automatically:
 
 ### **Before (Multiple Ports):**
 ```
-http://localhost:8000  → Main API
-http://localhost:5022  → Scrapers API
-http://localhost:8004  → Dashboard API
-http://localhost:5025  → Admin Metrics
+http://44.244.35.65:8000  → Main API
+http://44.244.35.65:5022  → Scrapers API
+http://44.244.35.65:8004  → Dashboard API
+http://44.244.35.65:5025  → Admin Metrics
 ```
 
 ### **After (Render - Single Domain + WebDriver):**

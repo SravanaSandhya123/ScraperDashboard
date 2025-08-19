@@ -121,7 +121,7 @@ Start-Sleep -Seconds 5
 Write-Host "`n🧪 Step 7: Testing the fixes..." -ForegroundColor Yellow
 
 # Test admin metrics API
-$apiTest = Invoke-RemoteCommand "curl -s http://localhost:8001/health" "Testing admin metrics API health"
+$apiTest = Invoke-RemoteCommand "curl -s http://44.244.35.65:8001/health" "Testing admin metrics API health"
 
 if ($apiTest -like "*healthy*") {
     Write-Host "✅ Admin metrics API is healthy" -ForegroundColor Green
@@ -130,7 +130,7 @@ if ($apiTest -like "*healthy*") {
 }
 
 # Test real-time endpoints
-$realtimeTest = Invoke-RemoteCommand "curl -s http://localhost:8001/system-resources-realtime" "Testing real-time endpoints"
+$realtimeTest = Invoke-RemoteCommand "curl -s http://44.244.35.65:8001/system-resources-realtime" "Testing real-time endpoints"
 
 if ($realtimeTest -like "*cpu_percent*") {
     Write-Host "✅ Real-time endpoints working" -ForegroundColor Green

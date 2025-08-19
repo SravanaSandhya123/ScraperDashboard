@@ -2,8 +2,8 @@
 import os
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager as CM
-from selenium.webdriver.edge.service import Service
-from selenium.webdriver.edge.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -549,11 +549,9 @@ def start():
     options.add_experimental_option(
         "prefs", prefs
     )
-    PATH=BASE_DIR+"\\edgedriver_win64\\msedgedriver.exe"
-    chromedriver_path = PATH
-    servicee = Service(executable_path=chromedriver_path)
-    #bot = webdriver.Chrome(service=Service(CM().install()), options=options)
-    bot = webdriver.Edge(service=servicee,options=options)
+    # Use Chrome WebDriver Manager to automatically download and manage Chrome driver
+    servicee = Service(CM().install())
+    bot = webdriver.Chrome(service=servicee, options=options)
     bot.minimize_window()
     bot.get(URL)
     try:
@@ -651,10 +649,9 @@ def run_eproc_scraper(
         prefs = {"download_restrictions": 3}
         options.add_experimental_option("prefs", prefs)
         
-        # Use a more robust way to define the driver path
-        driver_path = path.join(BASE_DIR, "edgedriver_win64", "msedgedriver.exe")
-        service = Service(executable_path=driver_path)
-        bot = webdriver.Edge(service=service, options=options)
+        # Use Chrome WebDriver Manager to automatically download and manage Chrome driver
+        service = Service(CM().install())
+        bot = webdriver.Chrome(service=service, options=options)
         
         # Try to minimize window safely, but don't fail if it doesn't work
         try:
@@ -785,7 +782,7 @@ def run_eproc_scraper(
         print(f"[ERROR] Exception during scraping: {e}")
     finally:
         if bot:
-            print("[BIDALERT INFO] Edge browser closed after scraping.")
+            print("[BIDALERT INFO] Chrome browser closed after scraping.")
             bot.quit()
 
 def run_eproc_scraper_with_bot(

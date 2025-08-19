@@ -38,7 +38,7 @@ export const testBackendConnection = async () => {
 
 export const getConnectionStatus = () => {
   const isLocalhost = window.location.hostname === 'localhost';
-  const backendUrl = isLocalhost ? 'localhost' : 'AWS Elastic Beanstalk';
+  const backendUrl = isLocalhost ? 'localhost' : 'AWS EC2 (44.244.35.65)';
   
   return {
     isLocalhost,

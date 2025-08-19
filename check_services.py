@@ -58,12 +58,12 @@ def check_systemd_service(service_name):
 def check_health_endpoints():
     """Check health endpoints if available"""
     health_endpoints = [
-        ('http://localhost:8000/health', 'Main API Health'),
-        ('http://localhost:5022/health', 'Scrapers API Health'),
-        ('http://localhost:8004/health', 'Dashboard API Health'),
-        ('http://localhost:5025/health', 'Admin Metrics Health'),
-        ('http://localhost:8001/health', 'Analytics API Health'),
-        ('http://localhost:8002/health', 'Additional Analytics Health'),
+        ('http://44.244.35.65:8000/health', 'Main API Health'),
+        ('http://44.244.35.65:5022/health', 'Scrapers API Health'),
+        ('http://44.244.35.65:8004/health', 'Dashboard API Health'),
+        ('http://44.244.35.65:5025/health', 'Admin Metrics Health'),
+        ('http://44.244.35.65:8001/health', 'Analytics API Health'),
+        ('http://44.244.35.65:8002/health', 'Additional Analytics Health'),
     ]
     
     results = []

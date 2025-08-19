@@ -15,6 +15,7 @@ import {
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAnimation } from '../../contexts/AnimationContext';
 import axios from 'axios';
+import { API_CONFIG, getApiUrl, getWsUrl } from '../../config/api';
 
 interface DashboardMetrics {
   active_jobs: number;
@@ -80,13 +81,9 @@ export const DashboardHome: React.FC = () => {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
 
-          // API base URL - use dynamic URL based on environment
-        const API_BASE_URL = window.location.hostname === 'localhost' 
-          ? 'http://localhost:8004'
-          : 'https://lavangam-minimal-backend-env.eba-22qprjmg.us-east-1.elasticbeanstalk.com';
-        const WS_URL = window.location.hostname === 'localhost'
-          ? 'ws://localhost:8002'
-          : 'wss://lavangam-minimal-backend-env.eba-22qprjmg.us-east-1.elasticbeanstalk.com';
+  // Centralized endpoints
+  const ADMIN_API_BASE = getApiUrl('admin');
+  const WS_URL = getWsUrl('dashboard');
 
   // Fetch initial data
   const fetchDashboardData = async () => {
@@ -94,16 +91,8 @@ export const DashboardHome: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // API base URL - use admin metrics API on port 8001
-      const API_BASE_URL = window.location.hostname === 'localhost' 
-        ? 'http://localhost:8001'
-        : 'https://lavangam-minimal-backend-env.eba-22qprjmg.us-east-1.elasticbeanstalk.com';
-      const WS_URL = window.location.hostname === 'localhost'
-        ? 'ws://localhost:8002'
-        : 'wss://lavangam-minimal-backend-env.eba-22qprjmg.us-east-1.elasticbeanstalk.com';
-      
-      // Fetch admin metrics from the correct endpoint
-      const response = await axios.get(`${API_BASE_URL}/admin-metrics`);
+      // Fetch admin metrics from the centralized endpoint
+      const response = await axios.get(`${ADMIN_API_BASE}/admin-metrics`);
       const apiData = response.data as AdminMetricsData;
       
       // Transform admin metrics data to dashboard format

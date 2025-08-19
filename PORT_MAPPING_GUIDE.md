@@ -8,16 +8,16 @@ This guide shows how to map ALL your local ports to AWS URLs after deployment.
 
 ### **Before (Local Development):**
 ```
-http://127.0.0.1:8000  → Main API
-http://127.0.0.1:5022  → Scrapers API  
-http://127.0.0.1:5024  → System Usage API
-http://127.0.0.1:8004  → Dashboard API
-http://127.0.0.1:5002  → Service 5002
-http://127.0.0.1:5003  → Service 5003
-http://127.0.0.1:8001  → Service 8001
-http://127.0.0.1:5021  → Service 5021
-http://127.0.0.1:5023  → Service 5023
-http://127.0.0.1:8002  → Service 8002
+http://44.244.35.65:8000  → Main API
+http://44.244.35.65:5022  → Scrapers API  
+http://44.244.35.65:5024  → System Usage API
+http://44.244.35.65:8004  → Dashboard API
+http://44.244.35.65:5002  → Service 5002
+http://44.244.35.65:5003  → Service 5003
+http://44.244.35.65:8001  → Service 8001
+http://44.244.35.65:5021  → Service 5021
+http://44.244.35.65:5023  → Service 5023
+http://44.244.35.65:8002  → Service 8002
 ```
 
 ### **After (AWS Deployment):**
@@ -46,27 +46,27 @@ http://18.236.173.88:5005      → E-Procurement API (Port 5005)
 const API_CONFIG = {
   // Main API base URL - Updated to use AWS EC2 instance
   MAIN_API: window.location.hostname === 'localhost' 
-  ? 'http://localhost:8000'
-    : 'http://18.236.173.88:8000',
+  ? 'http://44.244.35.65:8000'
+    : 'http://44.244.35.65:8000',
   
   // System metrics API
   SYSTEM_API: window.location.hostname === 'localhost' 
-    ? 'http://localhost:8001'
-    : 'http://18.236.173.88:8001',
+    ? 'http://44.244.35.65:8001'
+    : 'http://44.244.35.65:8001',
   
   // Dashboard API
   DASHBOARD_API: window.location.hostname === 'localhost' 
-    ? 'http://localhost:8004'
-    : 'http://18.236.173.88:8004',
+    ? 'http://44.244.35.65:8004'
+    : 'http://44.244.35.65:8004',
   
   // WebSocket URLs
   WS_MAIN: window.location.hostname === 'localhost'
-    ? 'ws://localhost:8002'
-    : 'ws://18.236.173.88:8002',
+    ? 'ws://44.244.35.65:8002'
+    : 'ws://44.244.35.65:8002',
   
   WS_DASHBOARD: window.location.hostname === 'localhost'
-    ? 'ws://localhost:8002'
-    : 'ws://18.236.173.88:8002'
+    ? 'ws://44.244.35.65:8002'
+    : 'ws://44.244.35.65:8002'
 };
 ```
 
@@ -126,13 +126,13 @@ aws ec2 authorize-security-group-ingress \
 ## 📱 **Mobile and External Access**
 
 ### **Before (Local Development):**
-- ❌ Mobile can't access `localhost:8000`
-- ❌ Mobile can't access `127.0.0.1:5022`
+- ❌ Mobile can't access `44.244.35.65:8000`
+- ❌ Mobile can't access `44.244.35.65:5022`
 - ❌ External devices can't connect
 
 ### **After (AWS Deployment):**
-- ✅ Mobile can access `http://18.236.173.88:8000`
-- ✅ Mobile can access `http://18.236.173.88:5022`
+- ✅ Mobile can access `http://44.244.35.65:8000`
+- ✅ Mobile can access `http://44.244.35.65:5022`
 - ✅ External devices can connect from anywhere
 - ✅ Your app works on all devices and networks
 

@@ -227,8 +227,8 @@ python -c "import pymysql; conn = pymysql.connect(host='44.244.61.85', port=3306
 
 #### 7.2 Test Admin Metrics API
 ```bash
-curl http://localhost:8001/health
-curl http://localhost:8001/system-resources-realtime
+curl http://44.244.35.65:8001/health
+curl http://44.244.35.65:8001/system-resources-realtime
 ```
 
 #### 7.3 Test Admin Panel

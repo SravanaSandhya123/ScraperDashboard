@@ -95,7 +95,7 @@ Write-Host "   ./setup-backend-on-ec2.sh" -ForegroundColor White
 Write-Host ""
 Write-Host "4. After setup completes, verify deployment:" -ForegroundColor White
 Write-Host "   python3 check_services.py" -ForegroundColor White
-Write-Host "   curl http://localhost:8000/health" -ForegroundColor White
+Write-Host "   curl http://44.244.35.65:8000/health" -ForegroundColor White
 Write-Host ""
 
 Write-Host "Your backend will be available at:" -ForegroundColor Cyan

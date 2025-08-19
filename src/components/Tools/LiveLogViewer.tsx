@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import io from 'socket.io-client';
+import { getWsUrl } from '../../config/api';
 
 function LiveLogViewer() {
   const [logs, setLogs] = useState<string[]>([]);
@@ -15,7 +16,7 @@ function LiveLogViewer() {
     
     const fetchLogs = async () => {
       try {
-        const res = await fetch('http://localhost:5023/api/logs');
+        const res = await fetch(`${getWsUrl('scraper')}/api/logs`);
         if (res.ok) {
           const data = await res.json();
           if (data.logs && data.logs.length > 0) {
@@ -35,7 +36,7 @@ function LiveLogViewer() {
     console.log('LiveLogViewer: Attempting to connect to Socket.IO...');
     
     // Connect to Socket.IO with polling transport only
-    socketRef.current = io('http://localhost:5023', {
+    socketRef.current = io(getWsUrl('scraper'), {
       transports: ['polling'],
       timeout: 10000
     });

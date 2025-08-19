@@ -37,7 +37,7 @@ def check_dependencies():
 def start_server():
     """Start the fixed eproc server"""
     print("🚀 Starting Fixed E-Procurement Server...")
-    print("📍 Server will be available at: http://localhost:5000")
+    print("📍 Server will be available at: http://44.244.35.65:5000")
     print("📊 Database: 44.244.61.85:3306/Toolinformation")
     print("=" * 60)
     
