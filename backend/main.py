@@ -83,45 +83,32 @@ if admin_metrics_api:
 if analytics_api:
     app.mount("/analytics", analytics_api.app)
 
-@app.post('/api/open-edge')
-async def open_edge(request: Request):
+@app.post('/api/open-chrome')
+async def open_chrome(request: Request):
     data = await request.json()
     url = data.get('url')
     if not url:
         return JSONResponse({'error': 'No URL provided'}, status_code=400)
     try:
-        options = Options()
+        from selenium.webdriver.chrome.service import Service as ChromeService
+        from selenium.webdriver.chrome.options import Options as ChromeOptions
+        from webdriver_manager.chrome import ChromeDriverManager
+        import tempfile
+
+        options = ChromeOptions()
         options.add_experimental_option("detach", True)
         options.add_argument("--ignore-certificate-errors")
         options.add_argument("--ignore-ssl-errors")
         options.add_argument("--ignore-certificate-errors-spki-list")
+        options.add_argument(f"--user-data-dir={tempfile.mkdtemp(prefix='chrome-profile-')}")
 
-        driver = None
-
-        # Attempt 1: Selenium Manager (Selenium >= 4.6) auto-resolves driver
-        try:
-            driver = webdriver.Edge(options=options)
-        except Exception as sm_err:
-            print(f"Selenium Manager failed to start Edge: {sm_err}")
-            # Attempt 2: webdriver-manager downloads matching driver
-            try:
-                from webdriver_manager.microsoft import EdgeChromiumDriverManager
-                managed_path = EdgeChromiumDriverManager().install()
-                service = Service(executable_path=managed_path)
-                driver = webdriver.Edge(service=service, options=options)
-            except Exception as wdm_err:
-                print(f"webdriver-manager fallback failed: {wdm_err}")
-                # Attempt 3: bundled driver path as last resort
-                bundled_path = os.path.abspath('backend/scrapers/edgedriver_win64/msedgedriver.exe')
-                if not os.path.exists(bundled_path):
-                    bundled_path = os.path.abspath('scrapers/edgedriver_win64/msedgedriver.exe')
-                service = Service(executable_path=bundled_path)
-                driver = webdriver.Edge(service=service, options=options)
+        service = ChromeService(executable_path=ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
 
         driver.get(url)
         return JSONResponse({'status': 'success'}, status_code=200)
     except Exception as e:
-        return JSONResponse({'error': f"Failed to open Edge: {e}"}, status_code=500)
+        return JSONResponse({'error': f"Failed to open Chrome: {e}"}, status_code=500)
 
 @app.post("/api/ai-assistant")
 async def ai_assistant(request: Request):

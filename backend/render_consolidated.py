@@ -90,31 +90,30 @@ if admin_metrics_api:
 if analytics_api:
     app.mount("/analytics", analytics_api.app)
 
-@app.post('/api/open-edge')
-async def open_edge(request: Request):
+@app.post('/api/open-chrome')
+async def open_chrome(request: Request):
     data = await request.json()
     url = data.get('url')
     if not url:
         return JSONResponse({'error': 'No URL provided'}, status_code=400)
     try:
-        # Try to use the existing WebDriver first
-        DRIVER_PATH = os.path.abspath('scrapers/edgedriver_win64/msedgedriver.exe')
-        options = Options()
-        options.add_experimental_option("detach", True)  # Keeps the browser open after script ends
+        from selenium.webdriver.chrome.service import Service as ChromeService
+        from selenium.webdriver.chrome.options import Options as ChromeOptions
+        from webdriver_manager.chrome import ChromeDriverManager
+        import tempfile
+
+        options = ChromeOptions()
+        options.add_experimental_option("detach", True)
         options.add_argument("--ignore-certificate-errors")
         options.add_argument("--ignore-ssl-errors")
         options.add_argument("--ignore-certificate-errors-spki-list")
-        
-        try:
-            service = Service(executable_path=DRIVER_PATH)
-            driver = webdriver.Edge(service=service, options=options)
-        except Exception as driver_error:
-            # If WebDriver fails, try using the system's default Edge installation
-            print(f"WebDriver error: {driver_error}")
-            options.add_argument("--no-sandbox")
-            options.add_argument("--disable-dev-shm-usage")
-            driver = webdriver.Edge(options=options)
-        
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument(f"--user-data-dir={tempfile.mkdtemp(prefix='chrome-profile-')}")
+
+        service = ChromeService(executable_path=ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
+
         driver.get(url)
         return JSONResponse({'status': 'success'}, status_code=200)
     except Exception as e:

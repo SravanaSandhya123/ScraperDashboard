@@ -1344,7 +1344,7 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
     }
   };
 
-  // E-Procurement handlers
+  // E-Procurement handlers (Chrome)
   const handleOpenEdge = async () => {
     setEError('');
     setESuccess('');
@@ -1358,24 +1358,24 @@ export const ToolInterface: React.FC<ToolInterfaceProps> = ({ tool, onBack }) =>
     setEIsRunning(true);
     try {
       console.log('[DEBUG] Sending URL to backend:', eBaseUrl);
-      console.log('[DEBUG] Backend URL:', `http://44.244.35.65:8000/api/open-edge`);
+      console.log('[DEBUG] Backend URL:', `${BACKEND_URL}/api/open-chrome`);
       
-      const res = await fetch(`http://44.244.35.65:8000/api/open-edge`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: eBaseUrl })
-    });
+      const res = await fetch(`${BACKEND_URL}/api/open-chrome`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: eBaseUrl })
+      });
       
     const data = await res.json();
       console.log('[DEBUG] Backend response:', data);
       
       if (res.ok) {
-      setEdgeOpened(true);
-        setECurrentSessionId(data.session_id); // <-- Save session_id here
-        setESuccess(`[INFO] Edge opened successfully with URL: ${data.url}\n[INFO] Please enter the captcha in the Edge window, then fill the rest of the fields and click Start Scraping.`);
-    } else {
-        setEError(data.error || 'Failed to open Edge');
-    }
+        setEdgeOpened(true);
+        setECurrentSessionId(data.session_id);
+        setESuccess(`[INFO] Chrome opened successfully with URL: ${data.url}\n[INFO] Please enter the captcha in the Chrome window, then fill the rest of the fields and click Start Scraping.`);
+      } else {
+        setEError(data.error || 'Failed to open Chrome');
+      }
     } catch (error) {
       console.error('[DEBUG] Error:', error);
       setEError('Failed to connect to backend server');

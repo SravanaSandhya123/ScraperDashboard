@@ -186,40 +186,36 @@ def test_url():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/open-edge', methods=['POST'])
-def open_edge():
+@app.route('/api/open-chrome', methods=['POST'])
+def open_chrome():
     try:
         data = request.get_json()
         url = build_advanced_search_url(data.get('url', ''))
-        print(f"[DEBUG] Final Edge URL: {url}")
+        print(f"[DEBUG] Final Chrome URL: {url}")
 
-        # Robust Edge driver resolution: Selenium Manager -> webdriver-manager -> bundled
-        options = Options()
-        bot = None
-        try:
-            bot = webdriver.Edge(options=options)
-        except Exception as sm_err:
-            print(f"[DEBUG] Selenium Manager failed: {sm_err}")
-            try:
-                from webdriver_manager.microsoft import EdgeChromiumDriverManager
-                managed_path = EdgeChromiumDriverManager().install()
-                service = Service(executable_path=managed_path)
-                bot = webdriver.Edge(service=service, options=options)
-            except Exception as wdm_err:
-                print(f"[DEBUG] webdriver-manager failed: {wdm_err}")
-                edge_driver_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scrapers', 'edgedriver_win64', 'msedgedriver.exe')
-                service = Service(executable_path=edge_driver_path)
-                bot = webdriver.Edge(service=service, options=options)
-        print(f"[DEBUG] Navigating Edge to: {url}")
+        from selenium.webdriver.chrome.service import Service as ChromeService
+        from selenium.webdriver.chrome.options import Options as ChromeOptions
+        from webdriver_manager.chrome import ChromeDriverManager
+        import tempfile
+
+        chrome_options = ChromeOptions()
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument(f"--user-data-dir={tempfile.mkdtemp(prefix='chrome-profile-')}")
+
+        service = ChromeService(ChromeDriverManager().install())
+        bot = webdriver.Chrome(service=service, options=chrome_options)
+        print(f"[DEBUG] Navigating Chrome to: {url}")
         bot.get(url)
 
         session_id = str(uuid.uuid4())
         pending_eproc_sessions[session_id] = bot
-        print(f"[DEBUG] Edge opened, session_id: {session_id}")
-        return jsonify({'message': 'Edge opened successfully', 'session_id': session_id, 'url': url}), 200
+        print(f"[DEBUG] Chrome opened, session_id: {session_id}")
+        return jsonify({'message': 'Chrome opened successfully', 'session_id': session_id, 'url': url}), 200
     except Exception as e:
-        print(f"[ERROR] Failed to open Edge: {e}")
-        return jsonify({'error': f'Failed to open Edge: {e}'}), 500
+        print(f"[ERROR] Failed to open Chrome: {e}")
+        return jsonify({'error': f'Failed to open Chrome: {e}'}), 500
 
 @app.route('/api/start-eproc-scraping', methods=['POST'])
 def start_eproc_scraping():

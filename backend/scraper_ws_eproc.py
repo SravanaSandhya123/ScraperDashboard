@@ -342,9 +342,16 @@ def run_eproc_scraper_api(base_url, tender_type, days_interval, start_page, capt
     
     # Try different service configurations
     try:
-        # Method 1: With service
-        servicee = Service(executable_path=PATH)
-        bot = webdriver.Edge(service=servicee, options=options)
+        # Prefer Chrome via webdriver-manager
+        from selenium.webdriver.chrome.service import Service as ChromeService
+        from selenium.webdriver.chrome.options import Options as ChromeOptions
+        from webdriver_manager.chrome import ChromeDriverManager
+        chrome_options = ChromeOptions()
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        servicec = ChromeService(ChromeDriverManager().install())
+        bot = webdriver.Chrome(service=servicec, options=chrome_options)
     except Exception as e1:
         print(f"[SCRAPER] Method 1 failed: {e1}")
         try:
